@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>RTS Web Prototype - C&C Style</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      overflow: hidden;
+      font-family: monospace;
+      user-select: none;
+    }
+    #gameCanvas {
+      background: #2b3a24; /* Tom clássico de grama militar */
+      display: block;
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #76ff03;
+      background: rgba(0,0,0,0.6);
+      padding: 8px 12px;
+      border: 1px solid #76ff03;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    Arraste c/ botão esquerdo para selecionar unidades.<br>
+    Clique c/ botão direito para mover.
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Desativa o menu de contexto do navegador no clique direito
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Estado da seleção
+    const selection = {
+      active: false,
+      startX: 0,
+      startY: 0,
+      currentX: 0,
+      currentY: 0
+    };
+
+    // Classe básica da Unidade
+    class Unit {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.targetX = x;
+        this.targetY = y;
+        this.speed = 2.5;
+        this.radius = 12;
+        this.selected = false;
+        this.color = '#e0a92d'; // Amarelo/Ouro estilo Nod/GDI
+      }
+
+      moveTo(x, y) {
+        this.targetX = x;
+        this.targetY = y;
+      }
+
+      update() {
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > this.speed) {
+          this.x += (dx / dist) * this.speed;
+          this.y += (dy / dist) * this.speed;
+        } else {
+          this.x = this.targetX;
+          this.y = this.targetY;
+        }
+      }
+
+      draw(ctx) {
+        // Círculo de seleção
+        if (this.selected) {
+          ctx.strokeStyle = '#00ff66';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Corpo da Unidade (ex: Tanque/Soldado simplificado)
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // Criando algumas unidades de teste
+    const units = [
+      new Unit(200, 200),
+      new Unit(250, 210),
+      new Unit(220, 260),
+      new Unit(500, 300)
+    ];
+
+    // Inputs do Mouse
+    window.addEventListener('mousedown', (e) => {
+      if (e.button === 0) { // Botão esquerdo: Iniciar arrasto de seleção
+        selection.active = true;
+        selection.startX = e.clientX;
+        selection.startY = e.clientY;
+        selection.currentX = e.clientX;
+        selection.currentY = e.clientY;
+      } else if (e.button === 2) { // Botão direito: Comandar movimento
+        const selectedUnits = units.filter(u => u.selected);
+        
+        // Distribui ligeiramente as unidades para não empilharem no mesmo pixel
+        selectedUnits.forEach((u, index) => {
+          const offset = (index - (selectedUnits.length - 1) / 2) * 20;
+          u.moveTo(e.clientX + offset, e.clientY);
+        });
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (selection.active) {
+        selection.currentX = e.clientX;
+        selection.currentY = e.clientY;
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 0 && selection.active) {
+        selection.active = false;
+
+        const left = Math.min(selection.startX, selection.currentX);
+        const right = Math.max(selection.startX, selection.currentX);
+        const top = Math.min(selection.startY, selection.currentY);
+        const bottom = Math.max(selection.startY, selection.currentY);
+
+        const isSingleClick = Math.abs(selection.startX - selection.currentX) < 5 && 
+                              Math.abs(selection.startY - selection.currentY) < 5;
+
+        units.forEach(u => {
+          if (isSingleClick) {
+            // Clique simples seleciona a unidade sob o cursor
+            const dist = Math.hypot(u.x - e.clientX, u.y - e.clientY);
+            u.selected = dist <= u.radius + 4;
+          } else {
+            // Caixa de arrasto
+            u.selected = (u.x >= left && u.x <= right && u.y >= top && u.y <= bottom);
+          }
+        });
+      }
+    });
+
+    // Loop de Renderização / Simulação
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Atualiza e desenha unidades
+      units.forEach(u => {
+        u.update();
+        u.draw(ctx);
+      });
+
+      // Desenha caixa de seleção
+      if (selection.active) {
+        const w = selection.currentX - selection.startX;
+        const h = selection.currentY - selection.startY;
+
+        ctx.strokeStyle = '#00ff66';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(selection.startX, selection.startY, w, h);
+
+        ctx.fillStyle = 'rgba(0, 255, 102, 0.15)';
+        ctx.fillRect(selection.startX, selection.startY, w, h);
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>
