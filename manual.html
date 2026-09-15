@@ -250,6 +250,9 @@
     
     <nav class="nav-bar">
       <a href="#controles">⌨️ Controles & Grupos</a>
+      <a href="#posturas">⚔️ Posturas de Combate</a>
+      <a href="#mapas">🗺️ 5 Biomas de Mapa</a>
+      <a href="#comms">📹 Videoconferência P2P</a>
       <a href="#trilha">🎵 Jukebox & Áudio</a>
       <a href="#infantaria">🪖 Infantaria & Categorias</a>
       <a href="#veiculos">🚜 Veículos & Helicóptero</a>
@@ -342,7 +345,111 @@
       </div>
     </section>
 
-    <!-- 3. INFANTARIA E CATEGORIAS -->
+    <!-- 3. POSTURAS DE COMBATE DAS TROPAS -->
+    <section class="section" id="posturas">
+      <h2 class="section-title"><span>⚔️</span> POSTURAS MILITARES DE COMBATE (UNIT STANCES)</h2>
+      <p style="margin-bottom: 20px;">Ao selecionar tropas aliadas, o painel inferior exibirá os botões de postura tática. Você pode configurar o comportamento militar de qualquer esquadrão:</p>
+
+      <div class="grid-3">
+        <div class="card highlight">
+          <div class="card-title">
+            <span>🛡️ DEFENSIVO (PADRÃO)</span>
+            <span class="badge badge-cyan">GUARDA</span>
+          </div>
+          <p>As unidades mantêm a área protegida. Caso avistem um inimigo, revidam o fogo e perseguem o alvo por uma distância segura (até 180px), retornando imediatamente à sua posição original para manter a defesa do setor.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>⚔️ AGRESSIVO (ATTACK-MOVE)</span>
+            <span class="badge badge-red">ASSALTO TOTAL</span>
+          </div>
+          <p>As tropas entram em modo de varredura ofensiva. Detectam alvos a uma distância <strong>+50% maior</strong> e perseguem qualquer unidade inimiga pelo mapa até a destruição total, sem abandonar o combate.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>🛑 MANTER POSIÇÃO (HOLD)</span>
+            <span class="badge badge-gold">EMBOSCADA</span>
+          </div>
+          <p>As tropas <strong>não se movem sob nenhuma circunstância</strong>, mesmo sob ataque pesado. Elas atiram continuamente em qualquer alvo que entre no seu alcance de tiro. Essencial para criar emboscadas e linhas defensivas perfeitas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. BIOMAS & MODELOS DE MAPA -->
+    <section class="section" id="mapas">
+      <h2 class="section-title"><span>🗺️</span> 5 BIOMAS & MODELOS PROCEDURAIS DE MAPA</h2>
+      <p style="margin-bottom: 20px;">O jogo oferece 5 modelos de mapas totalmente gerados em tempo real com características geográficas, obstáculos e estratégias próprias:</p>
+
+      <div class="grid-3">
+        <div class="card highlight">
+          <div class="card-title">
+            <span>🏜️ Tiberian Wasteland</span>
+            <span class="badge badge-gold">ÁRIDO CLÁSSICO</span>
+          </div>
+          <p>Terreno clássico argiloso e arenoso dos conflitos Tiberianos dos anos 90. Possui uma rodovia de asfalto sinuosa cortando o setor, formações rochosas de granito e campos ricos de minério verde.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>❄️ Siberian Permafrost</span>
+            <span class="badge badge-cyan">ÁRTICO & GELO</span>
+          </div>
+          <p>Planície congelada com bancos de neve, lagos de gelo translúcido e pinheiros nevados. <strong>Dominado por campos de Tiberium Azul Glacial</strong>, que rendem +50% de créditos por viagem de colheita!</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>🌋 Volcanic Badlands</span>
+            <span class="badge badge-red">VULCÂNICO & LAVA</span>
+          </div>
+          <p>Terreno basáltico escuro cortado por <strong>fissuras de magma incandescente animadas</strong> com calor radiante. Os cânions estreitos de rocha vulcânica formam gargalos estratégicos (chokepoints) defensivos vitais.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>🏖️ Desert Oasis</span>
+            <span class="badge badge-gold">DESERTO DOURADO</span>
+          </div>
+          <p>Dunas de areia fina esculpidas pelo vento com um <strong>oásis central paradisíaco de água azul-turquesa</strong> cercado por palmeiras tropicais. Falésias de arenito criam corredores naturais para manobras de flanqueamento.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>🏙️ Megacity Ruins</span>
+            <span class="badge badge-green">METRÓPOLE URBANA</span>
+          </div>
+          <p>Metrópole devastada com asfalto rachado, avenidas largas e escombros de edifícios com vergalhões de aço expostos. <strong>Veículos terrestres ganham +25% de velocidade nas estradas</strong>, tornando comboios blindados devastadores!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. VIDEOCONFERÊNCIA WEBRTC -->
+    <section class="section" id="comms">
+      <h2 class="section-title"><span>📹</span> COMMS TÁTICO: VIDEOCONFERÊNCIA WEBRTC DE COMANDANTES</h2>
+      <p style="margin-bottom: 20px;">Transmita sua imagem e voz em tempo real diretamente para os outros comandantes da partida via tecnologia nativa <strong>WebRTC Peer-to-Peer</strong>:</p>
+
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title">PAINEL FLUTUANTE DE COMANDANTES</div>
+          <p>Clique no badge <strong>📹 VÍDEO CONFERÊNCIA</strong> no topo da tela para abrir o painel militar de Comms:</p>
+          <ul style="margin: 10px 0 10px 20px;">
+            <li><strong>4 Telas CRT:</strong> Monitores dedicados para cada quadrante (Slot 1 GDI, Slot 2 NOD, Slot 3 Ouro, Slot 4 Roxo) com linhas de varredura militar.</li>
+            <li><strong>Botão 📹 CÂMERA:</strong> Ativa ou desativa sua webcam local instantaneamente.</li>
+            <li><strong>Botão 🎙️ MIC:</strong> Muta ou desmuta seu microfone com 1 clique.</li>
+            <li><strong>Botão 🗕 Minimizar:</strong> Recolhe o painel para ocupar espaço mínimo durante combates intensos.</li>
+          </ul>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">MODO HOLOGRÁFICO COM RADAR</div>
+          <p>Caso você ou seus companheiros não possuam webcam ou prefiram não ligar o vídeo, o sistema ativa automaticamente o <strong>Avatar Militar Holográfico</strong> com o brasão da facção e barras de radar tático animadas, mantendo a atmosfera de sala de guerra!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. INFANTARIA E CATEGORIAS -->
     <section class="section" id="infantaria">
       <h2 class="section-title"><span>🪖</span> INFANTARIA MILITAR E CATEGORIAS DE COMBATE</h2>
       <p style="margin-bottom: 20px;">As unidades a pé possuem animação anatômica de passadas alternadas, sombras orgânicas elípticas e esquemas visuais com armamento dedicado para cada especialidade:</p>

@@ -99,6 +99,7 @@ export class Unit {
         this.targetEnemy = null;
         this.targetBuilding = null;
         this.controlGroup = null;
+        this.stance = "defensive";
         this.treadTrackDist = 0;
         this.walkCycle = Math.random() * Math.PI * 2;
         this.idleBreath = Math.random() * Math.PI * 2;
@@ -323,7 +324,9 @@ export class Unit {
 
           const angleDiff = Math.abs(normalizeAngle(this.angle - desiredAngle));
           if (angleDiff < 0.95 || this.isAir) {
-            const moveStep = this.speed * dt;
+            let curSpeed = this.speed;
+            if (!this.isAir && engine.map && engine.map.isRoad(this.x, this.y)) curSpeed *= 1.25;
+            const moveStep = curSpeed * dt;
             const nextX = this.x + Math.cos(this.angle) * moveStep;
             const nextY = this.y + Math.sin(this.angle) * moveStep;
 

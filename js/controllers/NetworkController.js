@@ -301,6 +301,7 @@ export class MultiplayerManager {
           this.engine.eva.speak('Transmission channel open.');
         });
 
+        this.peer.on('call', (call) => this.handleIncomingMediaCall(call));
         this.peer.on('connection', (conn) => {
           this.setupConnectionHandlers(conn);
         });
@@ -340,6 +341,7 @@ export class MultiplayerManager {
         document.getElementById('clientStatusTxt').innerText = `Conectando a ${roomId}...`;
 
         this.peer.on('open', () => {
+          this.peer.on('call', (call) => this.handleIncomingMediaCall(call));
           this.conn = this.peer.connect(roomId, { reliable: true });
           this.setupConnectionHandlers(this.conn);
         });
@@ -630,11 +632,151 @@ export class MultiplayerManager {
             break;
           }
 
+          
+          case 'SYNC_MAP_THEME': {
+            this.engine.changeMapTheme(data.theme, false);
+            break;
+          }
+
+          case 'COMMS_STATUS': {
+            this.updateSlotMediaUI(data.slot, data.hasVideo, data.hasAudio);
+            break;
+          }
+
           case 'SYNC_STATE': {
             if (!this.isHost) {
               this.handleStateSync(data);
             }
             break;
+          }
+        }
+      }
+
+      
+      // =========================================================================
+      // TRANSMISSÃO DE VÍDEOCONFERÊNCIA WEBRTC (CÂMERA & MICROFONE)
+      // =========================================================================
+      async toggleCamera() {
+        const btnCam = document.getElementById('btnToggleCam');
+        if (this.isCameraOn) {
+          if (this.localStream) {
+            this.localStream.getVideoTracks().forEach(t => t.stop());
+          }
+          this.isCameraOn = false;
+          if (btnCam) btnCam.innerText = '📹 CÂMERA: OFF';
+          this.updateSlotMediaUI(this.engine.myFaction, false, !this.isMicMuted);
+          this.broadcastMediaStatus(false, !this.isMicMuted);
+        } else {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { width: 320, height: 240, frameRate: 15 },
+              audio: true
+            });
+            this.localStream = stream;
+            this.isCameraOn = true;
+            this.isMicMuted = false;
+            if (btnCam) btnCam.innerText = '📹 CÂMERA: ON';
+
+            const mySlot = this.engine.myFaction;
+            const localVid = document.getElementById(`video-slot-${mySlot}`);
+            const localHolo = document.getElementById(`holo-slot-${mySlot}`);
+            if (localVid) {
+              localVid.srcObject = stream;
+              localVid.muted = true;
+              localVid.play().catch(() => {});
+              localVid.style.display = 'block';
+            }
+            if (localHolo) localHolo.style.display = 'none';
+
+            this.updateSlotMediaUI(mySlot, true, true);
+            this.broadcastMediaStatus(true, true);
+
+            // Chama os peers conectados
+            this.callAllConnectedPeers();
+          } catch (err) {
+            console.warn('Erro ao acessar webcam:', err);
+            alert('Não foi possível acessar a câmera: ' + (err.message || 'Permissão negada.'));
+          }
+        }
+      }
+
+      toggleMic() {
+        const btnMic = document.getElementById('btnToggleMic');
+        if (!this.localStream) return;
+        this.isMicMuted = !this.isMicMuted;
+        this.localStream.getAudioTracks().forEach(t => t.enabled = !this.isMicMuted);
+        if (btnMic) btnMic.innerText = this.isMicMuted ? '🎙️ MIC: MUTADO' : '🎙️ MIC: ON';
+        this.broadcastMediaStatus(this.isCameraOn, !this.isMicMuted);
+      }
+
+      callAllConnectedPeers() {
+        if (!this.peer || !this.localStream) return;
+        if (this.isHost) {
+          this.connections.forEach(c => {
+            this.callPeerMedia(c.peer, c.slotId);
+          });
+        } else if (this.conn && this.conn.peer) {
+          this.callPeerMedia(this.conn.peer, 'slot1');
+        }
+      }
+
+      callPeerMedia(remotePeerId, slotId) {
+        if (!this.peer || !this.localStream) return;
+        const call = this.peer.call(remotePeerId, this.localStream);
+        this.handleMediaCall(call, slotId);
+      }
+
+      handleIncomingMediaCall(call) {
+        call.answer(this.localStream || undefined);
+        let senderSlot = 'slot1';
+        if (this.isHost) {
+          const matched = this.connections.find(c => c.peer === call.peer);
+          if (matched) senderSlot = matched.slotId;
+        }
+        this.handleMediaCall(call, senderSlot);
+      }
+
+      handleMediaCall(call, slotId) {
+        call.on('stream', (remoteStream) => {
+          const vid = document.getElementById(`video-slot-${slotId}`);
+          const holo = document.getElementById(`holo-slot-${slotId}`);
+          if (vid) {
+            vid.srcObject = remoteStream;
+            vid.play().catch(() => {});
+            vid.style.display = 'block';
+          }
+          if (holo) holo.style.display = 'none';
+          this.updateSlotMediaUI(slotId, true, true);
+        });
+
+        call.on('close', () => {
+          const vid = document.getElementById(`video-slot-${slotId}`);
+          const holo = document.getElementById(`holo-slot-${slotId}`);
+          if (vid) {
+            vid.srcObject = null;
+            vid.style.display = 'none';
+          }
+          if (holo) holo.style.display = 'flex';
+          this.updateSlotMediaUI(slotId, false, false);
+        });
+      }
+
+      broadcastMediaStatus(hasVideo, hasAudio) {
+        this.send({
+          type: 'COMMS_STATUS',
+          slot: this.engine.myFaction,
+          hasVideo: hasVideo,
+          hasAudio: hasAudio
+        });
+      }
+
+      updateSlotMediaUI(slot, hasVideo, hasAudio) {
+        const badge = document.getElementById(`badge-media-${slot}`);
+        if (badge) {
+          if (hasVideo) {
+            badge.innerHTML = `<span style="color: #00ff66;">● AO VIVO</span> ${hasAudio ? '🎙️' : '🔇'}`;
+          } else {
+            badge.innerHTML = `<span>HOLOGRÁFICO</span> ${hasAudio ? '🎙️' : ''}`;
           }
         }
       }

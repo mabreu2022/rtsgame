@@ -210,3 +210,173 @@
       color: var(--hud-green);
       border-color: var(--hud-green);
     }
+
+    /* PAINEL TÁTICO DE VÍDEO CONFERÊNCIA WEBRTC */
+    .comms-panel {
+      position: absolute;
+      bottom: 125px;
+      left: 20px;
+      width: 460px;
+      background: rgba(10, 15, 24, 0.96);
+      border: 1px solid #2d4156;
+      border-left: 3px solid #bb86fc;
+      border-radius: 4px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
+      z-index: 85;
+      display: none;
+      flex-direction: column;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(8px);
+      pointer-events: auto;
+    }
+    .comms-panel.show {
+      display: flex !important;
+    }
+    .comms-panel.minimized .comms-grid {
+      display: none !important;
+    }
+    .comms-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      background: rgba(18, 25, 38, 0.98);
+      border-bottom: 1px solid #233446;
+    }
+    .comms-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-tech);
+      font-size: 11px;
+      color: #bb86fc;
+      letter-spacing: 1px;
+    }
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      background: #ff3344;
+      border-radius: 50%;
+      animation: recBlink 1s infinite alternate;
+    }
+    @keyframes recBlink {
+      0% { opacity: 0.2; }
+      100% { opacity: 1; box-shadow: 0 0 8px #ff3344; }
+    }
+    .comms-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .comms-btn {
+      background: #151e2a;
+      border: 1px solid #2d4156;
+      color: #bb86fc;
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-family: var(--font-tech);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .comms-btn:hover {
+      background: rgba(187, 134, 252, 0.2);
+      border-color: #bb86fc;
+      color: #fff;
+    }
+    .comms-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      padding: 10px;
+    }
+    .comms-tile {
+      background: #080c12;
+      border: 1px solid #1e2c3c;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .slot1-tile { border-left: 2px solid #00e5ff; }
+    .slot2-tile { border-left: 2px solid #ff3344; }
+    .slot3-tile { border-left: 2px solid #f1c40f; }
+    .slot4-tile { border-left: 2px solid #cc44ff; }
+    .tile-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 6px;
+      font-size: 9px;
+      font-family: var(--font-tech);
+      background: rgba(12, 18, 26, 0.9);
+      border-bottom: 1px solid #1a2533;
+    }
+    .tile-screen {
+      width: 100%;
+      height: 95px;
+      position: relative;
+      background: #05070a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .comms-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    .holo-avatar {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
+    }
+    .holo-scanlines {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px);
+      pointer-events: none;
+    }
+    .holo-icon {
+      font-size: 22px;
+      filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+      animation: holoFloat 2.5s infinite ease-in-out alternate;
+    }
+    @keyframes holoFloat {
+      0% { transform: translateY(-2px); }
+      100% { transform: translateY(2px); }
+    }
+    .holo-callsign {
+      font-size: 9px;
+      font-family: var(--font-tech);
+      color: #728599;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+    /* POSTURAS DE COMBATE MILITAR */
+    .stance-btn {
+      background: #151e28;
+      border: 1px solid #2b3e52;
+      color: #8899aa;
+      font-family: var(--font-tech);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .stance-btn:hover {
+      background: rgba(0, 229, 255, 0.2);
+      color: #fff;
+      border-color: #00e5ff;
+    }
+    .stance-btn.active {
+      background: rgba(0, 255, 102, 0.25);
+      border-color: #00ff66;
+      color: #00ff66;
+      font-weight: bold;
+    }

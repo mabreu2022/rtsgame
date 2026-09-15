@@ -522,7 +522,80 @@ export class Engine {
         document.getElementById('btnZoomOut').onclick = () => { this.camera.zoom = Math.max(0.55, this.camera.zoom * 0.8); this.clampCamera(); };
         document.getElementById('btnCenterBase').onclick = () => this.centerOnBase();
 
-                // Controles do Jukebox de Trilha Sonora
+                        // Alternador Rápido de Bioma de Mapa no HUD
+        const btnMapSelect = document.getElementById('btnQuickMapSelect');
+        if (btnMapSelect) {
+          btnMapSelect.onclick = () => {
+            const themes = ['wasteland', 'snow', 'volcanic', 'desert', 'urban'];
+            const cur = this.currentMapTheme || 'wasteland';
+            const nextIdx = (themes.indexOf(cur) + 1) % themes.length;
+            this.changeMapTheme(themes[nextIdx], true);
+            this.sounds.playSelect();
+          };
+        }
+
+        // Painel de Comms de Vídeo WebRTC
+        const btnCommsToggle = document.getElementById('btnToggleComms');
+        const commsPanel = document.getElementById('tactical-comms-panel');
+        const btnMinimizeComms = document.getElementById('btnMinimizeComms');
+        const btnToggleCam = document.getElementById('btnToggleCam');
+        const btnToggleMic = document.getElementById('btnToggleMic');
+
+        if (btnCommsToggle && commsPanel) {
+          btnCommsToggle.onclick = () => {
+            commsPanel.classList.toggle('show');
+            this.sounds.playSelect();
+          };
+        }
+
+        if (btnMinimizeComms && commsPanel) {
+          btnMinimizeComms.onclick = () => {
+            commsPanel.classList.toggle('minimized');
+            btnMinimizeComms.innerText = commsPanel.classList.contains('minimized') ? '🗖' : '🗕';
+          };
+        }
+
+        if (btnToggleCam) {
+          btnToggleCam.onclick = () => {
+            if (this.multiplayer) this.multiplayer.toggleCamera();
+          };
+        }
+
+        if (btnToggleMic) {
+          btnToggleMic.onclick = () => {
+            if (this.multiplayer) this.multiplayer.toggleMic();
+          };
+        }
+
+        // Botões de Postura Militar (Unit Stances)
+        const btnStanceDef = document.getElementById('btnStanceDefensive');
+        const btnStanceAgg = document.getElementById('btnStanceAggressive');
+        const btnStanceHold = document.getElementById('btnStanceHold');
+
+        const setStance = (stance) => {
+          const selected = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+          if (selected.length > 0) {
+            selected.forEach(u => u.stance = stance);
+            this.sounds.playOrder();
+            const labels = {
+              defensive: 'DEFENSIVO',
+              aggressive: 'AGRESSIVO (ATTACK-MOVE)',
+              hold: 'MANTER POSIÇÃO'
+            };
+            this.showEvaMessage(`POSTURA DAS TROPAS: ${labels[stance]}`);
+            this.eva.speak(stance);
+            [btnStanceDef, btnStanceAgg, btnStanceHold].forEach(b => b && b.classList.remove('active'));
+            if (stance === 'defensive' && btnStanceDef) btnStanceDef.classList.add('active');
+            if (stance === 'aggressive' && btnStanceAgg) btnStanceAgg.classList.add('active');
+            if (stance === 'hold' && btnStanceHold) btnStanceHold.classList.add('active');
+          }
+        };
+
+        if (btnStanceDef) btnStanceDef.onclick = () => setStance('defensive');
+        if (btnStanceAgg) btnStanceAgg.onclick = () => setStance('aggressive');
+        if (btnStanceHold) btnStanceHold.onclick = () => setStance('hold');
+
+        // Controles do Jukebox de Trilha Sonora
         const btnJukePlay = document.getElementById('btnMusicPlay');
         const btnJukeNext = document.getElementById('btnMusicNext');
         const btnJukePrev = document.getElementById('btnMusicPrev');

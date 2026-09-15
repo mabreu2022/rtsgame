@@ -37,6 +37,24 @@ Um jogo clássico de Estratégia em Tempo Real (RTS) militar no estilo **Command
 - **Voz Tática EVA:** Avisos vocalizados militarmente via Web Speech API (*"Battle control online"*, *"Unit ready"*, *"Mission accomplished"*).
 - **Efeitos Sonoros Procedurais:** Disparos, foguetes, canhões, explosões com sub-graves, alarmes e chimes eletrônicos.
 
+### 🗺️ 5 Biomas & Modelos Procedurais de Mapa
+- **1. 🏜️ Tiberian Wasteland (Árido Clássico):** Terreno tiberiano clássico argiloso, rodovia sinuosa de asfalto, rochedos de granito e campos verdejantes de Tiberium.
+- **2. ❄️ Siberian Permafrost (Ártico & Gelo):** Planície congelada com lagos de gelo translúcido, pinheiros nevados e **predomínio de Tiberium Azul Glacial de Alta Renda (+50% créditos)**.
+- **3. 🌋 Volcanic Badlands (Basalto & Lava):** Terreno basáltico escuro com **fissuras de magma incandescente animadas** e cânions estreitos para emboscadas defensivas.
+- **4. 🏖️ Desert Oasis (Dunas Douradas):** Dunas de areia fina com ondulações de vento, **oásis paradisíaco central de água turquesa e palmeiras tropicais**, além de desfiladeiros de arenito.
+- **5. 🏙️ Megacity Ruins (Metrópole Urbana):** Malha de avenidas com asfalto rachado e escombros de edifícios. **Veículos terrestres ganham +25% de velocidade ao trafegar em estradas**, permitindo comboios rápidos!
+- **Seleção no Lobby e no HUD:** Escolha o bioma pelo dropdown da Sala 4 Players (com sincronização P2P para todos os jogadores) ou pelo botão rápido no topo da tela.
+
+### 📹 Videoconferência WebRTC P2P de Comandantes
+- **Transmissão Nativa de Webcam e Microfone:** Transmita vídeo e áudio em tempo real diretamente para os outros jogadores conectados na partida usando canais de mídia P2P via PeerJS.
+- **Painel Tático Militar (`#tactical-comms-panel`):** 4 telas de monitor CRT com scanlines para cada quadrante de jogador (GDI Azul, NOD Vermelho, GDI Ouro, NOD Roxo), botões de ligar/desligar câmera (`📹`), mutar microfone (`🎙️`) e minimizar painel (`🗕`).
+- **Modo Holográfico com Radar:** Caso um jogador não ligue a webcam, o monitor exibe um avatar militar holográfico animado com o brasão da sua facção e barras de radar tático.
+
+### ⚔️ Posturas Militares de Combate (Unit Stances)
+- **🛡️ Defensivo (Padrão / Guarda):** Unidades protegem o setor, revidando agressores e perseguindo apenas por uma distância curta (180px) antes de retornar ao seu posto de guarda.
+- **⚔️ Agressivo (Attack-Move):** Tropas realizam varredura com **alcance de detecção +50% maior**, perseguindo e aniquilando qualquer inimigo avistado no mapa.
+- **🛑 Manter Posição (Hold Ground):** Unidades permanecem **totalmente imóveis sob qualquer condição**, atirando contra qualquer alvo no alcance. Ideal para emboscadas com infantaria e artilharia.
+
 ### 🗺️ Radar Tático / Minimap Totalmente Interativo
 - **Navegação com Botão Esquerdo:** Clique em qualquer ponto do radar tático para centralizar a câmera imediatamente na área.
 - **Movimentação com Botão Direito (Click-to-Move):** Selecione qualquer grupo de tropas ou veículos e clique com o botão direito diretamente no radar para despachá-los ao setor desejado em formação tática, sem precisar mover a câmera.
