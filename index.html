@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiberian Assault - Tactical Web RTS (C&C Authentic)</title>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -3549,6 +3550,14 @@
           this.hp = 380; this.range = 130; this.attackDamage = 16;
           this.cooldown = 0; this.maxCooldown = 0.45;
           this.maxPassengers = 5;
+        } else if (type === 'transport_helo') {
+          this.name = 'Helicóptero de Transporte (Chinook)';
+          this.isAir = true; this.altitude = 42; this.radius = 24;
+          this.speed = 95; this.turnSpeed = 3.2;
+          this.hp = 360; this.range = 0;
+          this.maxPassengers = 6;
+          this.rotorAngle = 0;
+          this.rotorAngle2 = 0;
         } else if (type === 'helicopter') {
           this.name = 'Helicóptero Orca';
           this.isAir = true; this.altitude = 38; this.radius = 18;
@@ -3619,6 +3628,10 @@
 
       update(dt, engine) {
         if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 25);
+        if (this.isAir && this.type === 'transport_helo') {
+          this.rotorAngle += dt * 38;
+          this.rotorAngle2 -= dt * 38;
+        }
         if (this.isAir && this.type === 'helicopter') this.rotorAngle += dt * 35;
         if (this.isAir && this.type === 'jet' && Math.random() > 0.3) {
           engine.particles.createJetTrail(this.x - Math.cos(this.angle) * 16, this.y - Math.sin(this.angle) * 16);
@@ -4641,7 +4654,8 @@
             { id: 'tank', name: 'Tanque Médio M1', cost: 500, time: 7, desc: 'Tanque ágil com canhão 75mm e recuo mecânico.' },
             { id: 'mammoth', name: 'Tanque Mamute', cost: 1200, time: 13, desc: 'Super-tanque com canhões duplos de 120mm.' },
             { id: 'apc', name: 'Transporte APC', cost: 550, time: 8, desc: 'Blindado 6x6. Transporta até 5 soldados a pé.' },
-            { id: 'helicopter', name: 'Helicóptero Orca', cost: 900, time: 10, desc: 'Aeronave que voa sobre obstáculos e lança foguetes.' },
+            { id: 'transport_helo', name: 'Helicóptero de Transporte', cost: 750, time: 14, icon: '🚁', desc: 'Transporta até 6 tropas pelo ar e pousa em qualquer terreno' },
+          { id: 'helicopter', name: 'Helicóptero Orca', cost: 900, time: 10, desc: 'Aeronave que voa sobre obstáculos e lança foguetes.' },
             { id: 'jet', name: 'Caça a Jato de Ataque', cost: 1100, time: 12, desc: 'Alta velocidade e bombardeio supersônico.' },
             { id: 'harvester', name: 'Colhedora Reserva', cost: 650, time: 9, desc: 'Caminhão de extração de Tiberium.' }
           ];
@@ -4762,6 +4776,14 @@
         } else if (id === 'apc') {
           ctx.fillStyle = '#4c6541'; ctx.fillRect(-18, -12, 36, 24);
           ctx.fillStyle = '#111'; ctx.fillRect(-14, -14, 28, 4); ctx.fillRect(-14, 10, 28, 4);
+        } else if (id === 'transport_helo') {
+          ctx.fillStyle = '#4c6541'; ctx.beginPath(); ctx.ellipse(0, 0, 16, 7, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#00e5ff'; ctx.fillRect(10, -3, 5, 6);
+          ctx.strokeStyle = '#00ff66'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.stroke();
+          ctx.fillStyle = '#111';
+          ctx.beginPath(); ctx.arc(-10, 0, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(8, 0, 2, 0, Math.PI * 2); ctx.fill();
         } else if (id === 'helicopter') {
           ctx.fillStyle = '#4c6541'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(20, 0); ctx.stroke();
@@ -5344,6 +5366,8 @@
                 if (clickedBuilding) {
                   if (this.isFriendly(clickedBuilding.faction)) {
                     clickedBuilding.selected = true;
+                    this.showEvaMessage(`ESTRUTURA SELECIONADA: ${clickedBuilding.name.toUpperCase()}`);
+                    this.eva.speak(clickedBuilding.name);
                     if (clickedBuilding.type === 'barracks') {
                       document.getElementById('tabInfantry').click();
                     } else if (clickedBuilding.type === 'factory') {
@@ -5400,18 +5424,19 @@
           }
 
           // 2. Embarque de infantaria no APC
-          const targetAPC = this.units.find(u =>
-            this.isFriendly(u.faction) && u.type === 'apc' && Math.hypot(u.x - this.mouse.worldX, u.y - this.mouse.worldY) <= u.radius + 10
+          const targetTransport = this.units.find(u =>
+            this.isFriendly(u.faction) && (u.type === 'apc' || u.type === 'transport_helo') && Math.hypot(u.x - this.mouse.worldX, u.y - this.mouse.worldY) <= u.radius + 14
           );
-          if (targetAPC) {
+          if (targetTransport) {
             selectedUnits.forEach(u => {
-              if (u.isInfantry && targetAPC.passengers.length < targetAPC.maxPassengers) {
-                targetAPC.passengers.push(u.type);
+              if (u.isInfantry && targetTransport.passengers.length < targetTransport.maxPassengers) {
+                targetTransport.passengers.push(u.type);
                 u.hp = 0;
-                this.showEvaMessage('TROPAS EMBARCADAS NO APC');
+                const vName = targetTransport.type === 'transport_helo' ? 'HELICÓPTERO' : 'APC';
+                this.showEvaMessage(`TROPAS EMBARCADAS NO ${vName}`);
+                this.sounds.playOrder();
               }
             });
-            this.sounds.playOrder();
             this.updateSelectionInspection();
             return;
           }
@@ -5780,6 +5805,25 @@
         const typeBadge = document.getElementById('unit-type-badge');
         const hpBar = document.getElementById('unit-hp-bar-fill');
         const unloadBtn = document.getElementById('btn-unload-passengers');
+        if (unloadBtn) {
+          unloadBtn.onclick = () => {
+            const transport = this.units.find(u => u.selected && (u.type === 'apc' || u.type === 'transport_helo') && this.isFriendly(u.faction));
+            if (transport && transport.passengers.length > 0) {
+              this.eva.speak('Troops deployed.');
+              const vName = transport.type === 'transport_helo' ? 'DO HELICÓPTERO' : 'DO APC';
+              this.showEvaMessage(`DESEMBARQUE DE TROPAS ${vName} CONCLUÍDO`);
+              this.sounds.playOrder();
+              while (transport.passengers.length > 0) {
+                const pType = transport.passengers.pop();
+                const spreadX = transport.x + (Math.random() - 0.5) * 36;
+                const spreadY = transport.y + (Math.random() - 0.5) * 36;
+                const soldier = new Unit(spreadX, spreadY, pType, transport.faction);
+                this.units.push(soldier);
+              }
+              this.updateSelectionInspection();
+            }
+          };
+        }
         const portrait = document.getElementById('unit-portrait');
         const pctx = portrait.getContext('2d');
         pctx.clearRect(0, 0, 48, 48);
@@ -5808,8 +5852,9 @@
           const hpP = Math.max(0, (selectedUnit.hp / selectedUnit.maxHp) * 100);
           hpBar.style.width = `${hpP}%`;
 
-          if (selectedUnit.type === 'apc') {
-            subTxt.innerText = `Passageiros: ${selectedUnit.passengers.length}/5 tropas | HP: ${Math.floor(selectedUnit.hp)}`;
+          if (selectedUnit.type === 'apc' || selectedUnit.type === 'transport_helo') {
+            const maxCap = selectedUnit.maxPassengers || 5;
+            subTxt.innerText = `Passageiros: ${selectedUnit.passengers.length}/${maxCap} tropas | HP: ${Math.floor(selectedUnit.hp)}/${selectedUnit.maxHp}`;
             if (selectedUnit.passengers.length > 0) unloadBtn.style.display = 'block';
           } else {
             subTxt.innerText = `Kills: ${selectedUnit.kills} | Estado: ${selectedUnit.state} | HP: ${Math.floor(selectedUnit.hp)}/${selectedUnit.maxHp}`;
@@ -5821,10 +5866,66 @@
           pctx.restore();
         } else if (selectedBuilding) {
           nameTxt.innerText = selectedBuilding.name;
-          typeBadge.innerText = 'ESTRUTURA';
+
+          let bBadge = 'ESTRUTURA MILITAR';
+          let bColor = 'var(--hud-cyan)';
+          let bDesc = '';
+
+          if (selectedBuilding.type === 'hq') {
+            bBadge = 'CENTRO DE COMANDO (HQ)';
+            bColor = '#00e5ff';
+            bDesc = 'Radar Tático & Produção de Base';
+          } else if (selectedBuilding.type === 'power') {
+            bBadge = 'USINA DE ENERGIA (+100 GW)';
+            bColor = '#00ff66';
+            bDesc = 'Gera energia vital para toda a base';
+          } else if (selectedBuilding.type === 'barracks') {
+            bBadge = 'QUARTEL DE TROPAS';
+            bColor = '#e67e22';
+            bDesc = 'Treinamento de Infantaria & Engenheiros';
+          } else if (selectedBuilding.type === 'factory') {
+            bBadge = 'FÁBRICA DE GUERRA';
+            bColor = '#2980b9';
+            bDesc = 'Produção de Blindados, APCs & Aeronaves';
+          } else if (selectedBuilding.type === 'refinery') {
+            bBadge = 'REFINARIA DE TIBERIUM';
+            bColor = '#27ae60';
+            bDesc = 'Descarga de Minério & Refino Financeiro';
+          } else if (selectedBuilding.type === 'turret') {
+            bBadge = 'TORRE DE DEFESA TÁTICA';
+            bColor = '#e74c3c';
+            bDesc = 'Defesa Perimetral Automática';
+          } else if (selectedBuilding.type === 'silo') {
+            bBadge = 'SILO DE TIBERIUM (+3.000)';
+            bColor = '#f39c12';
+            bDesc = 'Expansão de Armazenamento de Créditos';
+          } else if (selectedBuilding.type === 'obelisk') {
+            bBadge = 'OBELISCO DE LUZ NOD';
+            bColor = '#c0392b';
+            bDesc = 'Defesa Laser de Alta Energia (220 Dano)';
+          } else if (selectedBuilding.type === 'temple') {
+            bBadge = 'TEMPLO DE NOD // NUCLEAR';
+            bColor = '#8e44ad';
+            bDesc = 'Super-Arma: Plataforma de Míssil Nuclear';
+          }
+
+          typeBadge.innerText = bBadge;
+          typeBadge.style.background = bColor;
+
           const hpP = Math.max(0, (selectedBuilding.hp / selectedBuilding.maxHp) * 100);
           hpBar.style.width = `${hpP}%`;
-          subTxt.innerText = selectedBuilding.isConstructing ? 'Em Montagem...' : (selectedBuilding.isRepairing ? '🔧 Em Reparo...' : `Integridade: ${Math.floor(selectedBuilding.hp)}/${selectedBuilding.maxHp} HP`);
+
+          const statusText = selectedBuilding.isConstructing
+            ? '⏳ Em Montagem...'
+            : (selectedBuilding.isRepairing ? '🔧 Em Reparo...' : '✅ Operacional (100%)');
+
+          subTxt.innerText = `${statusText} | ${bDesc} | Integridade: ${Math.floor(selectedBuilding.hp)}/${selectedBuilding.maxHp} HP`;
+
+          // Desenha o ícone detalhado do edifício no portrait
+          pctx.save();
+          pctx.translate(24, 24);
+          this.sidebar.drawCardIcon(selectedBuilding.type);
+          pctx.restore();
         } else {
           nameTxt.innerText = 'Comando Central';
           typeBadge.innerText = 'PRONTO';

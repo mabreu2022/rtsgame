@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Tático Militar // Command & Conquer: Tiberian Assault</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a0e;
+      --panel: rgba(14, 20, 28, 0.95);
+      --border: #223446;
+      --cyan: #00e5ff;
+      --green: #00ff66;
+      --amber: #ffaa00;
+      --red: #ff3344;
+      --gold: #f1c40f;
+      --font-tech: 'Orbitron', monospace, sans-serif;
+      --font-body: 'Rajdhani', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: #d8e4f0;
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 51, 68, 0.05) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    header {
+      background: rgba(10, 15, 22, 0.98);
+      border-bottom: 2px solid var(--border);
+      padding: 24px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      font-size: 32px;
+    }
+    .brand-text h1 {
+      font-family: var(--font-tech);
+      font-size: 20px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+    }
+    .brand-text p {
+      font-size: 13px;
+      color: #728599;
+      letter-spacing: 1px;
+    }
+
+    .btn-play {
+      background: linear-gradient(135deg, #0088cc, #00e5ff);
+      color: #04080e;
+      font-family: var(--font-tech);
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-play:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 100px;
+    }
+
+    .nav-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 40px;
+      background: rgba(16, 24, 34, 0.8);
+      padding: 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .nav-bar a {
+      color: #9ab0c5;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 3px;
+      transition: all 0.2s ease;
+    }
+    .nav-bar a:hover {
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--cyan);
+    }
+
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 32px;
+      margin-bottom: 36px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .section-title {
+      font-family: var(--font-tech);
+      font-size: 20px;
+      color: var(--cyan);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(8, 12, 18, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px;
+      position: relative;
+    }
+    .card.highlight {
+      border-left: 3px solid var(--cyan);
+    }
+    .card.nod {
+      border-left: 3px solid var(--red);
+    }
+    .card.gold {
+      border-left: 3px solid var(--gold);
+    }
+
+    .card-title {
+      font-family: var(--font-tech);
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-family: var(--font-tech);
+      letter-spacing: 1px;
+    }
+    .badge-cyan { background: rgba(0, 229, 255, 0.2); color: var(--cyan); border: 1px solid var(--cyan); }
+    .badge-red { background: rgba(255, 51, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
+    .badge-gold { background: rgba(241, 196, 15, 0.2); color: var(--gold); border: 1px solid var(--gold); }
+    .badge-green { background: rgba(0, 255, 102, 0.2); color: var(--green); border: 1px solid var(--green); }
+
+    .key {
+      display: inline-block;
+      background: #1e2a38;
+      color: #00e5ff;
+      border: 1px solid #334e68;
+      border-radius: 3px;
+      padding: 2px 8px;
+      font-family: var(--font-tech);
+      font-size: 12px;
+      margin: 0 4px;
+      box-shadow: 0 2px 0 #101820;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 14px;
+    }
+    th {
+      font-family: var(--font-tech);
+      color: #728599;
+      font-size: 12px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px;
+      border-top: 1px solid var(--border);
+      color: #556677;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-logo">⚔️</span>
+      <div class="brand-text">
+        <h1>MANUAL TÁTICO MILITAR</h1>
+        <p>COMMAND & CONQUER: TIBERIAN ASSAULT // ARQUITETURA MVC</p>
+      </div>
+    </div>
+    <a href="index.html" class="btn-play">🎮 JOGAR AGORA</a>
+  </header>
+
+  <div class="container">
+    
+    <nav class="nav-bar">
+      <a href="#controles">⌨️ Controles & Grupos</a>
+      <a href="#infantaria">🪖 Infantaria & Categorias</a>
+      <a href="#veiculos">🚜 Veículos & Helicóptero</a>
+      <a href="#estruturas">🏭 Estruturas & Defesas</a>
+      <a href="#superarmas">☢️ Super-Armas</a>
+      <a href="#multiplayer">🌐 Multiplayer 4 Players</a>
+      <a href="#vitoria">🏆 Objetivos de Vitória</a>
+    </nav>
+
+    <!-- 1. CONTROLES E ATALHOS -->
+    <section class="section" id="controles">
+      <h2 class="section-title"><span>⌨️</span> COMANDOS E ATALHOS DE TECLADO</h2>
+      <p style="margin-bottom: 20px;">O comando militar das suas tropas é executado com precisão através do mouse e atalhos táticos de teclado clássicos da série Command & Conquer:</p>
+      
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title">COMANDOS DE SELEÇÃO & ORDENS</div>
+          <table>
+            <tr><td><span class="key">Botão Esquerdo</span></td><td>Seleciona uma unidade/prédio ou abre caixa de arrasto para selecionar várias unidades.</td></tr>
+            <tr><td><span class="key">Botão Direito</span></td><td>Move unidades, ataca alvos inimigos, envia colhedora para o Tiberium ou embarca em transportes.</td></tr>
+            <tr><td><span class="key">Botão Direito</span></td><td>Cancela posicionamento de prédios ou desativa ferramentas de reparo/venda.</td></tr>
+            <tr><td><span class="key">Scroll do Mouse</span></td><td>Zoom in / Zoom out contínuo no campo de batalha.</td></tr>
+            <tr><td><span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span></td><td>Navegação de câmera pelo mapa tático.</td></tr>
+            <tr><td><span class="key">Enter</span></td><td>Abre o rádio de comunicação do Chat Tático militar.</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">GRUPOS DE CONTROLE TÁTICO (TIMES)</div>
+          <table>
+            <tr><td><span class="key">Ctrl + 1..9</span></td><td>Atribui as tropas atualmente selecionadas ao <strong>Grupo N</strong>. Um badge <code>[N]</code> surge sobre as tropas com confirmação de voz da EVA.</td></tr>
+            <tr><td><span class="key">1..9</span></td><td>Seleciona instantaneamente todas as unidades operacionais do Grupo N.</td></tr>
+            <tr><td><span class="key">1..9 (Duplo Toque)</span></td><td>Centraliza a câmera do jogo imediatamente na posição média das tropas do grupo!</td></tr>
+            <tr><td><span class="key">HQ</span></td><td>Botão flutuante na tela que centraliza a visão no Centro de Comando Principal.</td></tr>
+            <tr><td><span class="key">Esc</span></td><td>Limpa seleção de tropas e cancela ações ativas.</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. INFANTARIA E CATEGORIAS -->
+    <section class="section" id="infantaria">
+      <h2 class="section-title"><span>🪖</span> INFANTARIA MILITAR E CATEGORIAS DE COMBATE</h2>
+      <p style="margin-bottom: 20px;">As unidades a pé possuem animação anatômica de passadas alternadas, sombras orgânicas elípticas e esquemas visuais com armamento dedicado para cada especialidade:</p>
+
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Soldado Fuzileiro</span>
+            <span class="badge badge-green">ASSALTO LEVE</span>
+          </div>
+          <p>Tropa ágil de linha de frente com farda camuflada verde oliva, capacete tático Kevlar com óculos balísticos escuros e fuzil de assalto empunhado com as duas mãos. Ideal para patrulha e combate inicial.</p>
+          <table>
+            <tr><td>Custo / Treinamento</td><td>$100 // 4s</td></tr>
+            <tr><td>HP / Dano</td><td>75 HP // 10 Dano por disparo rápido</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Lança-Foguetes Pesado</span>
+            <span class="badge badge-amber" style="background: rgba(211,84,0,0.2); color: #d35400; border: 1px solid #d35400;">ANTI-BLINDADO</span>
+          </div>
+          <p>Soldado pesado com traje antichamas ocre/laranja tático, capacete com visor infravermelho e grande lançador de mísseis no ombro. Carrega tubos adicionais de mísseis na mochila dorsal. Excelente contra tanques e aeronaves.</p>
+          <table>
+            <tr><td>Custo / Treinamento</td><td>$250 // 7s</td></tr>
+            <tr><td>HP / Dano</td><td>95 HP // 45 Dano de impacto explosivo</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Engenheiro de Campo</span>
+            <span class="badge badge-gold">SUPORTE & CAPTURA</span>
+          </div>
+          <p>Especialista técnico desarmado com colete amarelo de alta visibilidade e faixas refletivas. Carrega uma maleta de ferramentas e tablet holográfico de diagnóstico. <strong>Infiltra em estruturas inimigas capturando-as instantaneamente</strong> ou repara edifícios aliados a 100%.</p>
+          <table>
+            <tr><td>Custo / Treinamento</td><td>$500 // 12s</td></tr>
+            <tr><td>HP / Especialidade</td><td>65 HP // Captura instantânea de prédios</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Comando de Elite</span>
+            <span class="badge badge-red">FORÇAS ESPECIAIS</span>
+          </div>
+          <p>Guerreiro furtivo de operações especiais com traje preto stealth, clássica boina militar vermelha com insígnia dourada e fuzil sniper suprimido equipado com <strong>mira laser tática vermelha guiada</strong>. Letal contra infantaria e defesas.</p>
+          <table>
+            <tr><td>Custo / Treinamento</td><td>$1.000 // 16s</td></tr>
+            <tr><td>HP / Dano</td><td>180 HP // 65 Dano de precisão extrema</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. VEÍCULOS E AERONAVES -->
+    <section class="section" id="veiculos">
+      <h2 class="section-title"><span>🚜</span> VEÍCULOS DE GUERRA & AERONAVES DE TRANSPORTE</h2>
+      
+      <div class="grid-3">
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Helicóptero de Transporte (Chinook)</span>
+            <span class="badge badge-cyan">NOVO // TRANSPORTE</span>
+          </div>
+          <p>Aeronave tática pesada com fuselagem alongada e rotores tandem duplos. <strong>Transporta até 6 soldados pelo ar</strong> para desembarque em qualquer ponto do mapa (inclusive atrás das defesas inimigas!). Selecione soldados e clique com o botão direito no helicóptero para embarcar; use o botão "Desembarcar" para soltar as tropas.</p>
+          <table>
+            <tr><td>Capacidade</td><td>6 Soldados</td></tr>
+            <tr><td>Custo / HP</td><td>$750 // 360 HP</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Tanque Médio M1</span>
+            <span class="badge badge-green">BLINDADO</span>
+          </div>
+          <p>Espinha dorsal blindada das forças terrestres com torre giratória independente de 360 graus e canhão perfurante. Esmaga infantaria inimiga que cruzar sua frente.</p>
+          <table>
+            <tr><td>Custo / HP</td><td>$800 // 260 HP</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Tanque Mamute Pesado</span>
+            <span class="badge badge-red">SUPER-PESADO</span>
+          </div>
+          <p>Blindado de cerco colossal com blindagem maciça e canhões duplos de longo alcance. Capaz de destruir pelotões inteiros de blindados leves.</p>
+          <table>
+            <tr><td>Custo / HP</td><td>$1.500 // 680 HP</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Transporte Blindado APC</span>
+            <span class="badge badge-gold">TRANSPORTE TERRESTRE</span>
+          </div>
+          <p>Veículo anfíbio 6x6 com metralhadora defensiva e compartimento para transportar até 5 tropas protegidas pelo mapa.</p>
+          <table>
+            <tr><td>Capacidade</td><td>5 Soldados // 380 HP</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Helicóptero de Ataque Orca</span>
+            <span class="badge badge-cyan">ATAQUE AÉREO</span>
+          </div>
+          <p>Aeronave leve de ataque com mísseis ar-solo rápidos e rotor supersônico. Excelente para emboscadas táticas a colhedoras inimigas.</p>
+          <table>
+            <tr><td>Custo / HP</td><td>$900 // 230 HP</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>Colhedora de Tiberium</span>
+            <span class="badge badge-green">ECONOMIA</span>
+          </div>
+          <p>Veículo industrial automatizado que coleta cristais verdes de Tiberium nos campos e descarrega na Refinaria para gerar créditos.</p>
+          <table>
+            <tr><td>Custo / HP</td><td>$1.400 // 480 HP</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ESTRUTURAS -->
+    <section class="section" id="estruturas">
+      <h2 class="section-title"><span>🏭</span> ESTRUTURAS MILITARES, DEFESAS & SILOS</h2>
+      <p style="margin-bottom: 20px;">Ao selecionar qualquer construção com o botão esquerdo, o painel inferior exibirá imediatamente o ícone detalhado, categoria, saldo energético e status de integridade:</p>
+
+      <div class="grid-3">
+        <div class="card highlight">
+          <div class="card-title">Centro de Comando (HQ)</div>
+          <p>Núcleo operacional da base militar. Permite a colocação de novos edifícios e alimenta o sistema de radar tático.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">Usina de Energia</div>
+          <p>Gera <strong>+100 GW</strong> de eletricidade. Falta de energia reduz a velocidade de produção pela metade e desativa defesas avançadas.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">Refinaria de Tiberium</div>
+          <p>Processa minério e vem equipada com uma Colhedora gratuita. Ponto de descarga de economia.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">Silo de Armazenamento</div>
+          <p>Expande a reserva de créditos da base em <strong>+$3.000</strong>. Se a capacidade esgotar, a EVA avisará *"Silos needed"*.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">Obelisco de Luz (NOD)</div>
+          <p>Defesa avançada que condensa energia em um feixe laser carmesim de altíssima intensidade (220 de dano contínuo).</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">Templo de NOD</div>
+          <p>Santuário tático que abriga a super-arma do Míssil Nuclear balístico de destruição em massa.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. SUPER-ARMAS -->
+    <section class="section" id="superarmas">
+      <h2 class="section-title"><span>☢️</span> ARSENAL DE SUPER-ARMAS</h2>
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title" style="color: var(--cyan);">🛰️ CANHÃO DE ÍONS ORBITAL (GDI)</div>
+          <p>Satélite de defesa orbital que canaliza um feixe de plasma concentrado diretamente do espaço sobre qualquer ponto do mapa. Causa 900 de dano em área e pulveriza fortificações inimigas com ondas de choque.</p>
+        </div>
+        <div class="card nod">
+          <div class="card-title" style="color: var(--red);">☢️ MÍSSIL NUCLEAR BALÍSTICO (NOD)</div>
+          <p>Ogiva nuclear de destruição em massa lançada a partir do Templo de NOD. Atinge o solo provocando um <strong>cogumelo atômico procedural</strong> devastador, tremor de tela e 1500 de dano catastrófico em um raio de 220 pixels.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. MULTIPLAYER 4 PLAYERS -->
+    <section class="section" id="multiplayer">
+      <h2 class="section-title"><span>🌐</span> SALAS MULTIPLAYER PARA ATÉ 4 JOGADORES & BOTS DE IA</h2>
+      <p style="margin-bottom: 16px;">O jogo suporta até 4 comandantes simultâneos via conexão direta <strong>WebRTC P2P</strong> (sem necessidade de abrir portas no roteador graças à tecnologia STUN):</p>
+
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title">QUADRANTES DO MAPA</div>
+          <table>
+            <tr><td><span class="badge badge-cyan">SLOT 1 (Noroeste)</span></td><td>Forças GDI Azul Celeste (Base Topo Esquerda)</td></tr>
+            <tr><td><span class="badge badge-red">SLOT 2 (Nordeste)</span></td><td>Irmandade de NOD Vermelho Sangue (Base Topo Direita)</td></tr>
+            <tr><td><span class="badge badge-gold">SLOT 3 (Sudoeste)</span></td><td>Forças GDI Ouro / Dourado (Base Baixo Esquerda)</td></tr>
+            <tr><td><span class="badge badge-red" style="background: rgba(204,68,255,0.2); color: #cc44ff; border: 1px solid #cc44ff;">SLOT 4 (Sudeste)</span></td><td>Irmandade de NOD Roxo Violeta (Base Baixo Direita)</td></tr>
+          </table>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">CONFIGURAÇÃO DE BOTS IA & CONVITES</div>
+          <p>No menu <strong>🌐 SALA / 4 PLAYERS</strong>, o Host pode configurar cada slot de 2 a 4 como:</p>
+          <ul style="margin: 10px 0 10px 20px;">
+            <li><strong>👤 Humano:</strong> Aguarda conexão de outro jogador via link de convite.</li>
+            <li><strong>🤖 Bot IA (Fácil / Médio / Brutal):</strong> A máquina assume a base com diferentes ritmos de produção e agressividade tática.</li>
+            <li><strong>⛔ Fechado:</strong> A base permanece desativada.</li>
+          </ul>
+          <p>Use o botão <strong>🔗 COPIAR LINK DE CONVITE</strong> para gerar URLs diretas como <code>?room=GDI-XXXX</code> com auto-conexão imediata!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. CONDIÇÕES DE VITÓRIA -->
+    <section class="section" id="vitoria">
+      <h2 class="section-title"><span>🏆</span> CONDIÇÕES DE VITÓRIA SELECIONÁVEIS</h2>
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title">🏆 Aniquilação Total</div>
+          <p>O modo clássico. Elimine todas as estruturas e unidades inimigas do mapa para alcançar a vitória militar absoluta.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">🎯 Destruição do HQ</div>
+          <p>Modo assassinato de alta tensão. Destrua o Centro de Comando adversário mantendo o seu próprio HQ protegido.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">💎 Corrida do Tiberium</div>
+          <p>Batalha econômica. A primeira facção a acumular <strong>$15.000 créditos</strong> nos seus cofres vence imediatamente a disputa.</p>
+        </div>
+        <div class="card highlight">
+          <div class="card-title">⛰️ Rei da Colina (Cratera Central)</div>
+          <p>Mantenha tropas dominando a Cratera Central de Tiberium por <strong>180 segundos</strong> acumulados para assegurar a vitória no setor.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>Command & Conquer: Tiberian Assault // Criado com HTML5 Canvas, Web Audio API e WebRTC P2P.</p>
+  </footer>
+
+</body>
+</html>

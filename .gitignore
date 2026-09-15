@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+temp_*.css
+build_*.js
+implement_*.js
+split_*.js
