@@ -83,6 +83,39 @@ export class ParticleSystem {
         });
       }
 
+      createDamageSmoke(x, y) {
+        this.particles.push({
+          x: x + (Math.random() - 0.5) * 6,
+          y: y + (Math.random() - 0.5) * 6,
+          vx: (Math.random() - 0.5) * 12,
+          vy: -22 - Math.random() * 18,
+          type: 'smoke',
+          radius: 7 + Math.random() * 5,
+          growth: 12,
+          life: 0.65 + Math.random() * 0.35,
+          maxLife: 1.0,
+          color: 'rgba(25, 25, 28,'
+        });
+      }
+
+      createBuildingFire(x, y, w = 60, h = 60) {
+        const px = x + (Math.random() - 0.5) * (w * 0.5);
+        const py = y + (Math.random() - 0.5) * (h * 0.5);
+        this.particles.push({
+          x: px, y: py,
+          vx: (Math.random() - 0.5) * 10,
+          vy: -15 - Math.random() * 20,
+          type: 'fire',
+          radius: 8 + Math.random() * 8,
+          life: 0.25 + Math.random() * 0.2,
+          maxLife: 0.45
+        });
+        if (Math.random() > 0.4) {
+          this.createDamageSmoke(px, py);
+        }
+      }
+
+
       update(dt) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
           const p = this.particles[i];

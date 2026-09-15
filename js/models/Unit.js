@@ -104,6 +104,16 @@ export class Unit {
         this.walkCycle = Math.random() * Math.PI * 2;
         this.idleBreath = Math.random() * Math.PI * 2;
         this.tiberiumRadiationTimer = 0;
+
+        // Pathfinding A*, Waypoints & Controles Táticos
+        this.path = [];
+        this.pathIndex = 0;
+        this.waypointQueue = [];
+        this.isAttackMove = false;
+        this.isPatrolling = false;
+        this.patrolOrigin = null;
+        this.damageSmokeTimer = 0;
+        this.attackScanTimer = 0;
       }
 
       addKill() {
@@ -120,14 +130,64 @@ export class Unit {
         }
       }
 
-      moveTo(x, y) {
+      calculatePath(destX, destY, engine = null) {
+        if (engine && engine.map && !this.isAir) {
+          const found = engine.map.findPath(this.x, this.y, destX, destY);
+          if (found && found.length > 0) {
+            this.path = found;
+            this.pathIndex = 0;
+            return;
+          }
+        }
+        this.path = [{ x: destX, y: destY }];
+        this.pathIndex = 0;
+      }
+
+      moveTo(x, y, engine = null) {
         this.targetX = x;
         this.targetY = y;
         this.targetEnemy = null;
+        this.isAttackMove = false;
+        this.isPatrolling = false;
+        this.calculatePath(x, y, engine);
         if (this.type === 'harvester' && this.state !== 'RETURNING' && this.state !== 'UNLOADING') {
           this.state = 'MOVING';
         } else if (this.type !== 'harvester') {
           this.state = 'MOVING';
+        }
+      }
+
+      attackMoveTo(x, y, engine = null) {
+        this.targetX = x;
+        this.targetY = y;
+        this.targetEnemy = null;
+        this.isAttackMove = true;
+        this.isPatrolling = false;
+        this.calculatePath(x, y, engine);
+        this.state = 'MOVING';
+      }
+
+      patrolTo(x, y, engine = null) {
+        this.patrolOrigin = { x: this.x, y: this.y };
+        this.isPatrolling = true;
+        this.isAttackMove = true;
+        this.targetX = x;
+        this.targetY = y;
+        this.calculatePath(x, y, engine);
+        this.state = 'MOVING';
+      }
+
+      queueOrder(order, engine = null) {
+        if (this.state === 'IDLE') {
+          if (order.type === 'ATTACK' && order.target) {
+            this.attack(order.target);
+          } else if (order.isAttackMove) {
+            this.attackMoveTo(order.x, order.y, engine);
+          } else {
+            this.moveTo(order.x, order.y, engine);
+          }
+        } else {
+          this.waypointQueue.push(order);
         }
       }
 
@@ -240,6 +300,61 @@ export class Unit {
           }
         }
 
+        // Separação Suave de Tropas Amigas Terrestres (Anti-Death-Stack)
+        if (!this.isAir) {
+          for (let i = 0; i < engine.units.length; i++) {
+            const other = engine.units[i];
+            if (other === this || other.isAir || other.hp <= 0) continue;
+            const minDist = this.radius + other.radius;
+            const odx = this.x - other.x;
+            const ody = this.y - other.y;
+            const odist = Math.hypot(odx, ody);
+            if (odist > 0 && odist < minDist) {
+              const push = ((minDist - odist) / minDist) * 48 * dt;
+              this.x += (odx / odist) * push;
+              this.y += (ody / odist) * push;
+            }
+          }
+        }
+
+        // Dano Crítico Visual: fumaça e centelhas intermitentes se HP < 35%
+        if (this.hp < this.maxHp * 0.35 && this.hp > 0) {
+          this.damageSmokeTimer = (this.damageSmokeTimer || 0) + dt;
+          if (this.damageSmokeTimer > 0.12) {
+            this.damageSmokeTimer = 0;
+            engine.particles.createDamageSmoke(this.x, this.y);
+            if (Math.random() < 0.25) {
+              engine.particles.createHarvestSparks(this.x, this.y);
+            }
+          }
+        }
+
+        // Modo Attack-Move: escaneia inimigos no percurso e engaja automaticamente
+        if (this.isAttackMove && this.state === 'MOVING' && !this.targetEnemy) {
+          this.attackScanTimer = (this.attackScanTimer || 0) + dt;
+          if (this.attackScanTimer > 0.18) {
+            this.attackScanTimer = 0;
+            const scanRange = this.range * 1.3;
+            const threat = engine.units.find(u =>
+              engine.areEnemies(u.faction, this.faction) && u.hp > 0 && Math.hypot(u.x - this.x, u.y - this.y) <= scanRange
+            ) || engine.buildings.find(b =>
+              engine.areEnemies(b.faction, this.faction) && b.hp > 0 && Math.hypot(b.x - this.x, b.y - this.y) <= scanRange
+            );
+            if (threat) {
+              this.attack(threat);
+            }
+          }
+        }
+
+        // Micro de Retirada Tática para Bots: se vida < 25% e sob ataque, recua
+        if (this.faction.startsWith('slot') && this.faction !== engine.myFaction && this.hp < this.maxHp * 0.25 && this.targetEnemy) {
+          const hq = engine.buildings.find(b => b.type === 'hq' && b.faction === this.faction && b.hp > 0);
+          if (hq && Math.hypot(hq.x - this.x, hq.y - this.y) > 160) {
+            this.targetEnemy = null;
+            this.moveTo(hq.x + (Math.random() - 0.5) * 60, hq.y + (Math.random() - 0.5) * 60, engine);
+          }
+        }
+
         // Combate
         if (this.attackDamage && this.type !== 'harvester') {
           this.cooldown = Math.max(0, this.cooldown - dt);
@@ -247,7 +362,16 @@ export class Unit {
           if (this.targetEnemy) {
             if (this.targetEnemy.hp <= 0) {
               this.targetEnemy = null;
-              this.state = 'IDLE';
+              if (this.isAttackMove) {
+                this.state = 'MOVING';
+                this.calculatePath(this.targetX, this.targetY, engine);
+              } else if (this.waypointQueue.length > 0) {
+                const nextOrder = this.waypointQueue.shift();
+                if (nextOrder.isAttackMove) this.attackMoveTo(nextOrder.x, nextOrder.y, engine);
+                else this.moveTo(nextOrder.x, nextOrder.y, engine);
+              } else {
+                this.state = 'IDLE';
+              }
             } else {
               const dist = Math.hypot(this.targetEnemy.x - this.x, this.targetEnemy.y - this.y);
               const angleToTarget = Math.atan2(this.targetEnemy.y - this.y, this.targetEnemy.x - this.x);
@@ -291,7 +415,7 @@ export class Unit {
             this.findNearestTiberiumField(engine);
           } else if (this.state === 'MOVING') {
             this.moveTowardsTarget(dt, engine);
-            if (Math.hypot(this.targetX - this.x, this.targetY - this.y) < 20) {
+            if (Math.hypot(this.targetX - this.x, this.targetY - this.y) < 25) {
               this.state = this.targetField ? 'HARVESTING' : 'IDLE';
             }
           } else if (this.state === 'HARVESTING') {
@@ -302,7 +426,7 @@ export class Unit {
               this.targetX = this.targetRefinery.dockX;
               this.targetY = this.targetRefinery.dockY;
               this.moveTowardsTarget(dt, engine);
-              if (Math.hypot(this.targetRefinery.dockX - this.x, this.targetRefinery.dockY - this.y) < 15) {
+              if (Math.hypot(this.targetRefinery.dockX - this.x, this.targetRefinery.dockY - this.y) < 18) {
                 this.state = 'UNLOADING';
                 this.angle = -Math.PI / 2;
               }
@@ -314,11 +438,20 @@ export class Unit {
       }
 
       moveTowardsTarget(dt, engine) {
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
+        let curTargetX = this.targetX;
+        let curTargetY = this.targetY;
+
+        if (this.path && this.path.length > 0 && this.pathIndex < this.path.length) {
+          const wp = this.path[this.pathIndex];
+          curTargetX = wp.x;
+          curTargetY = wp.y;
+        }
+
+        const dx = curTargetX - this.x;
+        const dy = curTargetY - this.y;
         const dist = Math.hypot(dx, dy);
 
-        if (dist > 5) {
+        if (dist > 7) {
           const desiredAngle = Math.atan2(dy, dx);
           this.angle = rotateTowards(this.angle, desiredAngle, this.turnSpeed * dt);
 
@@ -348,13 +481,42 @@ export class Unit {
                   }
                 }
               } else {
-                this.state = 'IDLE';
+                // Obstáculo à frente: recalcula rota A*
+                this.calculatePath(this.targetX, this.targetY, engine);
               }
             }
           }
         } else {
-          this.x = this.targetX; this.y = this.targetY;
-          if (this.state === 'MOVING') this.state = 'IDLE';
+          // Chegou ao waypoint intermediário
+          if (this.path && this.pathIndex < this.path.length - 1) {
+            this.pathIndex++;
+          } else {
+            // Destino final alcançado
+            this.x = this.targetX;
+            this.y = this.targetY;
+
+            if (this.isPatrolling && this.patrolOrigin) {
+              const temp = { x: this.targetX, y: this.targetY };
+              this.targetX = this.patrolOrigin.x;
+              this.targetY = this.patrolOrigin.y;
+              this.patrolOrigin = temp;
+              this.calculatePath(this.targetX, this.targetY, engine);
+              return;
+            }
+
+            if (this.waypointQueue && this.waypointQueue.length > 0) {
+              const nextOrder = this.waypointQueue.shift();
+              if (nextOrder.type === 'ATTACK' && nextOrder.target) {
+                this.attack(nextOrder.target);
+              } else if (nextOrder.isAttackMove) {
+                this.attackMoveTo(nextOrder.x, nextOrder.y, engine);
+              } else {
+                this.moveTo(nextOrder.x, nextOrder.y, engine);
+              }
+            } else {
+              if (this.state === 'MOVING') this.state = 'IDLE';
+            }
+          }
         }
       }
 

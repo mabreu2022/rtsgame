@@ -67,6 +67,13 @@ export class Engine {
         };
         this.gameOver = false;
         this.aiTimers = { slot2: 0, slot3: 0, slot4: 0 };
+        this.aiBuildTimers = { slot2: 0, slot3: 0, slot4: 0 };
+        this.aiCredits = { slot2: 3000, slot3: 3000, slot4: 3000 };
+
+        // Controles de Simulação e Táticos
+        this.gameSpeed = 1; // 0 = Pausado, 1 = Normal (1x), 2 = Rápido (2x)
+        this.attackMoveActive = false;
+        this.patrolActive = false;
 
         this.sidebar = new SidebarUI(this);
 
@@ -92,12 +99,30 @@ export class Engine {
       }
 
       isFriendly(faction) {
+        if (!faction) return false;
         if (faction === this.myFaction) return true;
         if (this.myFaction === 'slot1' && faction === 'player') return true;
         if (this.myFaction === 'slot2' && faction === 'enemy') return true;
         if (this.myFaction === 'player' && faction === 'slot1') return true;
         if (this.myFaction === 'enemy' && faction === 'slot2') return true;
+        if (this.teams && this.teams[this.myFaction] && this.teams[faction] && this.teams[this.myFaction] !== 'none' && this.teams[this.myFaction] === this.teams[faction]) return true;
+        if (this.diplomacyPacts && (this.diplomacyPacts.has(`${this.myFaction}_${faction}`) || this.diplomacyPacts.has(`${faction}_${this.myFaction}`))) return true;
         return false;
+      }
+
+      areEnemies(f1, f2) {
+        if (!f1 || !f2) return false;
+        if (f1 === f2) return false;
+        if ((f1 === 'player' && f2 === 'slot1') || (f1 === 'slot1' && f2 === 'player')) return false;
+        if ((f1 === 'enemy' && f2 === 'slot2') || (f1 === 'slot2' && f2 === 'enemy')) return false;
+        if (this.teams && this.teams[f1] && this.teams[f2] && this.teams[f1] !== 'none' && this.teams[f1] === this.teams[f2]) return false;
+        if (this.diplomacyPacts && (this.diplomacyPacts.has(`${f1}_${f2}`) || this.diplomacyPacts.has(`${f2}_${f1}`))) return false;
+        return true;
+      }
+
+      areAllied(f1, f2) {
+        if (!f1 || !f2) return false;
+        return !this.areEnemies(f1, f2);
       }
 
       resize() {
@@ -201,6 +226,18 @@ export class Engine {
           this.units.push(new Unit(1750, 1500, 'rifleman', 'slot4', 's4_rif'));
         }
 
+        // Registra as pegadas das estruturas no grid do mapa
+        this.buildings.forEach(b => {
+          if (this.map) this.map.registerBuilding(b);
+        });
+        this.aiCredits = { slot2: 3000, slot3: 3000, slot4: 3000 };
+
+        // Revela a visão inicial das tropas e estruturas aliadas
+        if (this.map) {
+          const friendlyEnts = [...this.units.filter(u => this.isFriendly(u.faction)), ...this.buildings.filter(b => this.isFriendly(b.faction))];
+          this.map.updateVision(friendlyEnts);
+        }
+
         // Posiciona a câmera inicial na base correspondente
         this.centerOnBase();
         this.recalculatePower();
@@ -227,6 +264,37 @@ export class Engine {
 
         this.canvas.addEventListener('mousedown', (e) => {
           if (e.button === 0) {
+            // 0. Modo Attack-Move ou Patrulha Ativo
+            if (this.attackMoveActive) {
+              const selectedUnits = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+              if (selectedUnits.length > 0) {
+                this.sounds.playTacticalRadio();
+                selectedUnits.forEach((u, idx) => {
+                  const spread = (idx - (selectedUnits.length - 1) / 2) * 22;
+                  u.attackMoveTo(this.mouse.worldX + spread, this.mouse.worldY, this);
+                });
+                this.showEvaMessage('ORDEM DE ATTACK-MOVE CONFIRMADA');
+              }
+              this.attackMoveActive = false;
+              this.canvas.style.cursor = 'crosshair';
+              return;
+            }
+
+            if (this.patrolActive) {
+              const selectedUnits = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+              if (selectedUnits.length > 0) {
+                this.sounds.playTacticalRadio();
+                selectedUnits.forEach((u, idx) => {
+                  const spread = (idx - (selectedUnits.length - 1) / 2) * 22;
+                  u.patrolTo(this.mouse.worldX + spread, this.mouse.worldY, this);
+                });
+                this.showEvaMessage('ORDEM DE PATRULHA CONFIRMADA');
+              }
+              this.patrolActive = false;
+              this.canvas.style.cursor = 'crosshair';
+              return;
+            }
+
             // 1. Super-Arma Ativa (Canhão de Íons ou Míssil Nuclear)
             if (this.sidebar.activeTool === 'ion') {
               const isNod = this.myFaction === 'slot2' || this.myFaction === 'enemy' || this.myFaction === 'slot4' || this.buildings.some(b => b.type === 'temple' && this.isFriendly(b.faction));
@@ -324,19 +392,11 @@ export class Engine {
                   }
                 });
 
-                this.units.forEach(u => u.selected = false);
-                this.buildings.forEach(b => b.selected = false);
-
                 if (clickedBuilding) {
+                  this.units.forEach(u => u.selected = false);
+                  this.buildings.forEach(b => b.selected = false);
                   if (this.isFriendly(clickedBuilding.faction)) {
                     clickedBuilding.selected = true;
-                    this.showEvaMessage(`ESTRUTURA SELECIONADA: ${clickedBuilding.name.toUpperCase()}`);
-                    this.eva.speak(clickedBuilding.name);
-                    if (clickedBuilding.type === 'barracks') {
-                      document.getElementById('tabInfantry').click();
-                    } else if (clickedBuilding.type === 'factory') {
-                      document.getElementById('tabVehicles').click();
-                    }
                   }
                   this.sounds.playSelect();
                 }
@@ -346,7 +406,7 @@ export class Engine {
           }
         });
 
-        // Clique Direito: Movimento, Ataque, Embarque em APC ou Mineração
+        // Clique Direito: Movimento, Ataque, Embarque em APC, Mineração ou Rally Point
         this.canvas.addEventListener('contextmenu', (e) => {
           e.preventDefault();
 
@@ -364,7 +424,17 @@ export class Engine {
           }
 
           const selectedUnits = this.units.filter(u => u.selected && this.isFriendly(u.faction));
-          if (selectedUnits.length === 0) return;
+
+          // Se nenhuma unidade estiver selecionada, define Rally Point na Fábrica/Quartel selecionado
+          if (selectedUnits.length === 0) {
+            const selectedBldg = this.buildings.find(b => b.selected && this.isFriendly(b.faction) && (b.type === 'barracks' || b.type === 'factory'));
+            if (selectedBldg) {
+              selectedBldg.rallyPoint = { x: this.mouse.worldX, y: this.mouse.worldY };
+              this.sounds.playRallyPoint();
+              this.showEvaMessage(`PONTO DE ENCONTRO DEFINIDO: ${selectedBldg.name.toUpperCase()}`);
+            }
+            return;
+          }
 
           // 1. Alvo Inimigo
           const enemyTarget = this.units.find(u =>
@@ -374,8 +444,14 @@ export class Engine {
           );
 
           if (enemyTarget) {
-            selectedUnits.forEach(u => u.attack(enemyTarget));
-            this.sounds.playOrder();
+            if (e.shiftKey) {
+              selectedUnits.forEach(u => u.queueOrder({ type: 'ATTACK', target: enemyTarget }, this));
+              this.sounds.playTacticalRadio();
+              this.showEvaMessage('ORDEM DE ATAQUE NA FILA (SHIFT)');
+            } else {
+              selectedUnits.forEach(u => u.attack(enemyTarget));
+              this.sounds.playOrder();
+            }
             if (this.multiplayer) {
               this.multiplayer.send({
                 type: 'CMD_ATTACK',
@@ -409,17 +485,31 @@ export class Engine {
           const clickedField = this.map.tiberiumFields.find(f => Math.hypot(f.x - this.mouse.worldX, f.y - this.mouse.worldY) < 120);
           const fieldIndex = clickedField ? this.map.tiberiumFields.indexOf(clickedField) : -1;
 
-          // 4. Movimento com formação
-          this.sounds.playOrder();
+          // 4. Movimento tático com formação e A* Pathfinding
+          this.sounds.playTacticalRadio();
           selectedUnits.forEach((u, idx) => {
             if (u.type === 'harvester' && clickedField) {
               u.targetField = clickedField;
               u.state = 'HARVESTING';
             } else {
-              const spread = (idx - (selectedUnits.length - 1) / 2) * 25;
-              u.moveTo(this.mouse.worldX + spread, this.mouse.worldY);
+              const spread = (idx - (selectedUnits.length - 1) / 2) * 24;
+              const tx = this.mouse.worldX + spread;
+              const ty = this.mouse.worldY;
+              if (e.shiftKey) {
+                u.queueOrder({ type: 'MOVE', x: tx, y: ty, isAttackMove: this.attackMoveActive }, this);
+              } else if (this.attackMoveActive) {
+                u.attackMoveTo(tx, ty, this);
+              } else {
+                u.moveTo(tx, ty, this);
+              }
             }
           });
+
+          if (e.shiftKey) {
+            this.showEvaMessage('WAYPOINT ADICIONADO À FILA (SHIFT)');
+          }
+          this.attackMoveActive = false;
+          this.canvas.style.cursor = 'crosshair';
 
           if (this.multiplayer) {
             this.multiplayer.send({
@@ -438,15 +528,11 @@ export class Engine {
           e.preventDefault();
           const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
           const newZoom = Math.max(0.55, Math.min(1.85, this.camera.zoom * zoomFactor));
-          const before = this.screenToWorld(this.mouse.screenX, this.mouse.screenY);
           this.camera.zoom = newZoom;
-          const after = this.screenToWorld(this.mouse.screenX, this.mouse.screenY);
-          this.camera.x += before.x - after.x;
-          this.camera.y += before.y - after.y;
           this.clampCamera();
         }, { passive: false });
 
-        // Teclado: Grupos de Controle (Ctrl+1..9 e 1..9), Pan e Cancelamento
+        // Teclado: Grupos de Controle (Ctrl+1..9 e 1..9), Pan, Attack-Move, Pausa e Save/Load
         window.addEventListener('keydown', (e) => {
           if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
             return;
@@ -503,9 +589,59 @@ export class Engine {
             }
           }
 
+          // Tecla A: Ativa Attack-Move quando unidades amigas estão selecionadas
+          if (e.key === 'a' || e.key === 'A') {
+            const selected = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+            if (selected.length > 0) {
+              this.attackMoveActive = !this.attackMoveActive;
+              this.patrolActive = false;
+              this.canvas.style.cursor = this.attackMoveActive ? 'crosshair' : 'default';
+              this.showEvaMessage(this.attackMoveActive ? '⚔️ ATTACK-MOVE: CLIQUE NO DESTINO' : 'ATTACK-MOVE CANCELADO');
+              this.sounds.playSelect();
+              return;
+            }
+          }
+
+          // Tecla P: Ativa Patrulha quando unidades amigas estão selecionadas
+          if (e.key === 'p' || e.key === 'P') {
+            const selected = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+            if (selected.length > 0) {
+              this.patrolActive = !this.patrolActive;
+              this.attackMoveActive = false;
+              this.showEvaMessage(this.patrolActive ? '🛡️ PATRULHA: CLIQUE NO PONTO DE RETORNO' : 'PATRULHA CANCELADA');
+              this.sounds.playSelect();
+              return;
+            }
+          }
+
+          // Tecla Espaço: Pausa / Despausa partida
+          if (e.key === ' ') {
+            e.preventDefault();
+            this.togglePause();
+            return;
+          }
+
+          // F5: Salvamento Rápido
+          if (e.key === 'F5') {
+            e.preventDefault();
+            this.quickSave();
+            return;
+          }
+
+          // F9: Carregamento Rápido
+          if (e.key === 'F9') {
+            e.preventDefault();
+            this.quickLoad();
+            return;
+          }
+
           if (e.key === 'Escape') {
+            this.closePowerGridModal();
             this.sidebar.cancelPlacement(true);
             this.sidebar.activeTool = null;
+            this.attackMoveActive = false;
+            this.patrolActive = false;
+            this.canvas.style.cursor = 'crosshair';
             document.getElementById('btnToolRepair').classList.remove('active');
             document.getElementById('btnToolSell').classList.remove('active');
             document.getElementById('placement-guide').classList.remove('show');
@@ -540,6 +676,30 @@ export class Engine {
         if (btnCloseDiplo && modalDiplo) {
           btnCloseDiplo.onclick = () => {
             modalDiplo.style.display = 'none';
+          };
+        }
+
+        // Painel e Modal de Diagnóstico da Rede Elétrica & Silos
+        const powerContainer = document.getElementById('power-container');
+        const economyContainer = document.getElementById('economy-container');
+        const btnClosePowerGrid = document.getElementById('btnClosePowerGrid');
+        const modalPowerGrid = document.getElementById('power-grid-modal');
+
+        if (powerContainer) {
+          powerContainer.onclick = () => {
+            this.openPowerGridModal();
+            this.sounds.playSelect();
+          };
+        }
+        if (economyContainer) {
+          economyContainer.onclick = () => {
+            this.openPowerGridModal();
+            this.sounds.playSelect();
+          };
+        }
+        if (btnClosePowerGrid && modalPowerGrid) {
+          btnClosePowerGrid.onclick = () => {
+            this.closePowerGridModal();
           };
         }
 
@@ -788,6 +948,196 @@ export class Engine {
             document.getElementById('multiplayer-modal').style.display = 'flex';
           };
         }
+
+        // Controles de Velocidade de Jogo (Pausa, 1x, 2x)
+        const btnSpdPause = document.getElementById('btnSpeedPause');
+        const btnSpd1x = document.getElementById('btnSpeed1x');
+        const btnSpd2x = document.getElementById('btnSpeed2x');
+        if (btnSpdPause) btnSpdPause.onclick = () => this.togglePause();
+        if (btnSpd1x) btnSpd1x.onclick = () => this.setGameSpeed(1);
+        if (btnSpd2x) btnSpd2x.onclick = () => this.setGameSpeed(2);
+
+        // Botões de QuickSave e QuickLoad
+        const btnSave = document.getElementById('btnQuickSave');
+        const btnLoad = document.getElementById('btnQuickLoad');
+        if (btnSave) btnSave.onclick = () => this.quickSave();
+        if (btnLoad) btnLoad.onclick = () => this.quickLoad();
+
+        // Botão HUD Attack-Move
+        const btnAtkMove = document.getElementById('btnHudAttackMove');
+        if (btnAtkMove) {
+          btnAtkMove.onclick = () => {
+            const selected = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+            if (selected.length > 0) {
+              this.attackMoveActive = !this.attackMoveActive;
+              this.patrolActive = false;
+              this.canvas.style.cursor = this.attackMoveActive ? 'crosshair' : 'default';
+              this.showEvaMessage(this.attackMoveActive ? '⚔️ ATTACK-MOVE: CLIQUE NO DESTINO' : 'ATTACK-MOVE CANCELADO');
+              this.sounds.playSelect();
+            } else {
+              this.showEvaMessage('SELECIONE UNIDADES PARA ATTACK-MOVE');
+            }
+          };
+        }
+
+        // Botão HUD Patrol
+        const btnPatrol = document.getElementById('btnHudPatrol');
+        if (btnPatrol) {
+          btnPatrol.onclick = () => {
+            const selected = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+            if (selected.length > 0) {
+              this.patrolActive = !this.patrolActive;
+              this.attackMoveActive = false;
+              this.canvas.style.cursor = this.patrolActive ? 'crosshair' : 'default';
+              this.showEvaMessage(this.patrolActive ? '🛡️ PATRULHA: CLIQUE NO PONTO DE RETORNO' : 'PATRULHA CANCELADA');
+              this.sounds.playSelect();
+            } else {
+              this.showEvaMessage('SELECIONE UNIDADES PARA PATRULHAR');
+            }
+          };
+        }
+      }
+
+      changeMapTheme(newTheme, regenerate = true) {
+        this.currentMapTheme = newTheme;
+        if (this.map) {
+          this.map.theme = newTheme;
+          if (regenerate && typeof this.map.generateWorld === 'function') {
+            this.map.generateWorld();
+          }
+        }
+        const btn = document.getElementById('btnQuickMapSelect');
+        if (btn) btn.innerHTML = `🗺️ BIOMA: ${newTheme.toUpperCase()}`;
+      }
+
+      quickSave() {
+        try {
+          const saveData = {
+            version: 1,
+            time: Date.now(),
+            credits: this.credits,
+            creditCapacity: this.creditCapacity,
+            myFaction: this.myFaction,
+            victoryMode: this.victoryMode,
+            currentMapTheme: this.currentMapTheme || 'wasteland',
+            battleStats: this.battleStats,
+            camera: { x: this.camera.x, y: this.camera.y, zoom: this.camera.zoom },
+            units: this.units.map(u => ({
+              x: u.x, y: u.y, type: u.type, faction: u.faction, uid: u.uid,
+              hp: u.hp, maxHp: u.maxHp, angle: u.angle, rank: u.rank, kills: u.kills,
+              ore: u.ore || 0, stance: u.stance
+            })),
+            buildings: this.buildings.map(b => ({
+              x: b.x, y: b.y, type: b.type, faction: b.faction, uid: b.uid,
+              hp: b.hp, maxHp: b.maxHp, isConstructing: b.isConstructing,
+              constructProgress: b.constructProgress,
+              rallyPoint: b.rallyPoint ? { x: b.rallyPoint.x, y: b.rallyPoint.y } : null
+            })),
+            slotConfigs: this.slotConfigs,
+            aiCredits: this.aiCredits
+          };
+
+          localStorage.setItem('tiberian_assault_quicksave', JSON.stringify(saveData));
+          this.sounds.playSaveLoadChime(true);
+          this.eva.speak('Game saved.');
+          this.showEvaMessage('💾 PARTIDA SALVA NO LOCALSTORAGE (F5)');
+        } catch (err) {
+          console.error('Erro ao salvar partida:', err);
+        }
+      }
+
+      quickLoad() {
+        try {
+          const raw = localStorage.getItem('tiberian_assault_quicksave');
+          if (!raw) {
+            this.showEvaMessage('NENHUM SALVAMENTO ENCONTRADO');
+            return;
+          }
+          const data = JSON.parse(raw);
+
+          this.credits = data.credits;
+          this.creditCapacity = data.creditCapacity;
+          this.myFaction = data.myFaction;
+          this.victoryMode = data.victoryMode;
+          this.battleStats = data.battleStats;
+          this.slotConfigs = data.slotConfigs || this.slotConfigs;
+          this.aiCredits = data.aiCredits || { slot2: 3000, slot3: 3000, slot4: 3000 };
+
+          if (data.currentMapTheme && data.currentMapTheme !== this.currentMapTheme) {
+            this.changeMapTheme(data.currentMapTheme, false);
+          }
+
+          // Limpa e reconstitui prédios
+          this.buildings = [];
+          data.buildings.forEach(bd => {
+            const b = new Building(bd.x, bd.y, bd.type, bd.faction, bd.isConstructing, bd.uid);
+            b.hp = bd.hp;
+            b.maxHp = bd.maxHp;
+            b.constructProgress = bd.constructProgress;
+            if (bd.rallyPoint) b.rallyPoint = bd.rallyPoint;
+            this.buildings.push(b);
+            if (this.map) this.map.registerBuilding(b);
+          });
+
+          // Limpa e reconstitui unidades
+          this.units = [];
+          data.units.forEach(ud => {
+            const u = new Unit(ud.x, ud.y, ud.type, ud.faction, ud.uid);
+            u.hp = ud.hp;
+            u.maxHp = ud.maxHp;
+            u.angle = ud.angle;
+            u.rank = ud.rank;
+            u.kills = ud.kills;
+            if (ud.ore) u.ore = ud.ore;
+            if (ud.stance) u.stance = ud.stance;
+            this.units.push(u);
+          });
+
+          this.projectiles = [];
+          this.activeIonStrike = null;
+          this.activeNukeStrike = null;
+
+          if (data.camera) {
+            this.camera.x = data.camera.x;
+            this.camera.y = data.camera.y;
+            this.camera.zoom = data.camera.zoom;
+            this.clampCamera();
+          }
+
+          this.recalculatePower();
+          this.updateEconomyDisplay();
+          this.updateSelectionInspection();
+
+          this.sounds.playSaveLoadChime(false);
+          this.eva.speak('Game loaded.');
+          this.showEvaMessage('📂 PARTIDA CARREGADA COM SUCESSO (F9)');
+        } catch (err) {
+          console.error('Erro ao carregar partida:', err);
+        }
+      }
+
+      togglePause() {
+        this.gameSpeed = this.gameSpeed === 0 ? 1 : 0;
+        this.updateSpeedUI();
+        const msg = this.gameSpeed === 0 ? '⏸ SIMULAÇÃO PAUSADA' : '▶ SIMULAÇÃO RETOMADA (1X)';
+        this.showEvaMessage(msg);
+      }
+
+      setGameSpeed(speed) {
+        this.gameSpeed = speed;
+        this.updateSpeedUI();
+        const label = speed === 0 ? 'PAUSADO' : (speed === 2 ? '2X (RÁPIDO)' : '1X (NORMAL)');
+        this.showEvaMessage(`VELOCIDADE: ${label}`);
+      }
+
+      updateSpeedUI() {
+        const btnPause = document.getElementById('btnSpeedPause');
+        const btn1x = document.getElementById('btnSpeed1x');
+        const btn2x = document.getElementById('btnSpeed2x');
+        [btnPause, btn1x, btn2x].forEach(b => b && b.classList.remove('active'));
+        if (this.gameSpeed === 0 && btnPause) btnPause.classList.add('active');
+        else if (this.gameSpeed === 1 && btn1x) btn1x.classList.add('active');
+        else if (this.gameSpeed === 2 && btn2x) btn2x.classList.add('active');
       }
 
       centerOnBase() {
@@ -818,6 +1168,11 @@ export class Engine {
         if (this.isFriendly(b.faction)) {
           this.eva.speak('Structure sold.');
           this.showEvaMessage(`ESTRUTURA VENDIDA (+$${refund})`);
+        }
+
+        if (this.map) {
+          this.map.unregisterBuilding(b);
+          this.map.addBuildingRubble(b.x, b.y, b.width, b.height);
         }
 
         const idx = this.buildings.indexOf(b);
@@ -915,18 +1270,218 @@ export class Engine {
         }
       }
 
-      recalculatePower() {
-        let produced = 0, consumed = 0;
+      getPowerGridBreakdown(faction = 'player') {
+        const friendlyBuildings = this.buildings.filter(b => this.isFriendly(b.faction) && b.hp > 0 && !b.isConstructing);
+
+        let totalProduced = 0;
+        let totalConsumed = 0;
         let siloCount = 0;
-        this.buildings.forEach(b => {
-          if (this.isFriendly(b.faction) && b.hp > 0 && !b.isConstructing) {
-            produced += b.powerGen;
-            consumed += b.powerCons;
-            if (b.type === 'silo') siloCount++;
+
+        const producers = [];
+        const consumers = [];
+        const prodMap = new Map();
+        const consMap = new Map();
+
+        friendlyBuildings.forEach(b => {
+          if (b.powerGen > 0) {
+            const isDamaged = (b.type === 'power' && b.hp < b.maxHp * 0.5);
+            const actualGen = isDamaged ? Math.floor(b.powerGen * 0.5) : b.powerGen;
+            totalProduced += actualGen;
+
+            const key = b.type;
+            if (!prodMap.has(key)) {
+              prodMap.set(key, {
+                type: b.type,
+                name: b.name,
+                count: 0,
+                baseGen: b.powerGen,
+                actualTotal: 0,
+                damagedCount: 0
+              });
+            }
+            const item = prodMap.get(key);
+            item.count++;
+            item.actualTotal += actualGen;
+            if (isDamaged) item.damagedCount++;
+          }
+
+          if (b.powerCons > 0) {
+            totalConsumed += b.powerCons;
+            const key = b.type;
+            if (!consMap.has(key)) {
+              consMap.set(key, {
+                type: b.type,
+                name: b.name,
+                count: 0,
+                eachCons: b.powerCons,
+                totalCons: 0
+              });
+            }
+            const item = consMap.get(key);
+            item.count++;
+            item.totalCons += b.powerCons;
+          }
+
+          if (b.type === 'silo') {
+            siloCount++;
           }
         });
 
-        this.creditCapacity = 3500 + siloCount * 3000;
+        prodMap.forEach(v => producers.push(v));
+        consMap.forEach(v => consumers.push(v));
+
+        const baseCap = 3500;
+        const siloCap = siloCount * 3000;
+        const totalCap = baseCap + siloCap;
+        const credits = Math.floor(this.credits);
+        const fillRatio = totalCap > 0 ? (credits / totalCap) : 0;
+        const fillPct = Math.round(fillRatio * 100);
+        const isOverflow = credits >= totalCap;
+
+        return {
+          totalProduced,
+          totalConsumed,
+          surplus: totalProduced - totalConsumed,
+          isCritical: totalConsumed > totalProduced,
+          efficiency: totalProduced > 0 ? Math.min(1.0, totalProduced / Math.max(1, totalConsumed)) : 0,
+          producers,
+          consumers,
+          silos: {
+            count: siloCount,
+            baseCapacity: baseCap,
+            siloCapacity: siloCap,
+            totalCapacity: totalCap,
+            credits,
+            fillRatio,
+            fillPct,
+            isOverflow
+          }
+        };
+      }
+
+      openPowerGridModal() {
+        const modal = document.getElementById('power-grid-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        this.renderPowerGridModal();
+      }
+
+      closePowerGridModal() {
+        const modal = document.getElementById('power-grid-modal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      renderPowerGridModal() {
+        const modal = document.getElementById('power-grid-modal');
+        if (!modal || modal.style.display === 'none') return;
+
+        const data = this.getPowerGridBreakdown();
+
+        const banner = document.getElementById('pwr-modal-summary-banner');
+        if (banner) {
+          banner.className = `pwr-summary-banner ${data.isCritical ? 'critical' : 'stable'}`;
+          const diffText = data.surplus >= 0 ? `+${data.surplus} GW (EXCEDENTE)` : `${data.surplus} GW (DÉFICIT)`;
+          const statusDesc = data.isCritical
+            ? 'SOBRECARGA ELÉTRICA: Velocidade de treino e recarga de defesas reduzidas em 50%!'
+            : 'REDE ESTABILIZADA: Todas as fábricas, radares e defesas operando com 100% de eficiência.';
+          banner.innerHTML = `
+            <div class="pwr-summary-main">
+              <span class="pwr-summary-title" style="color: ${data.isCritical ? '#ff3344' : '#00ff66'}">
+                ${data.isCritical ? '⚠️ ALERTA DE REDE: DÉFICIT ENERGÉTICO' : '⚡ STATUS DA REDE: ENERGIZADA & ESTÁVEL'}
+              </span>
+              <span class="pwr-summary-desc">${statusDesc}</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 10px; color: #8da4ba; font-family: var(--font-tech);">BALANÇO LÍQUIDO</div>
+              <div style="font-size: 16px; font-weight: 900; font-family: var(--font-tech); color: ${data.isCritical ? '#ff3344' : '#00ff66'}">${diffText}</div>
+            </div>
+          `;
+        }
+
+        const badgeProduced = document.getElementById('pwr-total-produced-badge');
+        const badgeConsumed = document.getElementById('pwr-total-consumed-badge');
+        if (badgeProduced) badgeProduced.innerText = `+${data.totalProduced} GW`;
+        if (badgeConsumed) badgeConsumed.innerText = `-${data.totalConsumed} GW`;
+
+        const prodList = document.getElementById('pwr-producers-list');
+        if (prodList) {
+          if (data.producers.length === 0) {
+            prodList.innerHTML = '<div class="pwr-item-row" style="color: #8da4ba;">Nenhuma fonte geradora ativa!</div>';
+          } else {
+            prodList.innerHTML = data.producers.map(p => {
+              const damagedBadge = p.damagedCount > 0 ? `<span style="color:#ffaa00; font-size:10px;">(${p.damagedCount} avariada(s): 50% pot.)</span>` : '';
+              return `
+                <div class="pwr-item-row">
+                  <div class="pwr-item-name">
+                    <span>⚡</span>
+                    <span><strong>${p.count}x</strong> ${p.name} ${damagedBadge}</span>
+                  </div>
+                  <div class="pwr-item-val gain">+${p.actualTotal} GW</div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+
+        const consList = document.getElementById('pwr-consumers-list');
+        if (consList) {
+          if (data.consumers.length === 0) {
+            consList.innerHTML = '<div class="pwr-item-row" style="color: #8da4ba;">Nenhuma estrutura consumidora ativa.</div>';
+          } else {
+            consList.innerHTML = data.consumers.map(c => `
+              <div class="pwr-item-row">
+                <div class="pwr-item-name">
+                  <span>🔌</span>
+                  <span><strong>${c.count}x</strong> ${c.name} <span style="color:#6a8096; font-size:10px;">(-${c.eachCons} GW cada)</span></span>
+                </div>
+                <div class="pwr-item-val drain">-${c.totalCons} GW</div>
+              </div>
+            `).join('');
+          }
+        }
+
+        const siloStatusBadge = document.getElementById('pwr-silo-status-badge');
+        const siloModalFill = document.getElementById('pwr-silo-modal-fill');
+        const siloCredits = document.getElementById('pwr-silo-credits-stored');
+        const siloCapacity = document.getElementById('pwr-silo-capacity-total');
+        const siloPct = document.getElementById('pwr-silo-pct');
+        const siloAlert = document.getElementById('pwr-silo-overflow-alert');
+
+        const { silos } = data;
+        if (siloStatusBadge) {
+          siloStatusBadge.className = `silo-status-tag ${silos.isOverflow ? 'overflow' : ''}`;
+          siloStatusBadge.innerText = `${silos.count} SILO(S) ATIVO(S) - ${silos.fillPct}%`;
+        }
+        if (siloModalFill) {
+          siloModalFill.style.width = `${Math.min(100, silos.fillPct)}%`;
+          siloModalFill.className = `pwr-silo-bar-fill ${silos.fillPct >= 95 ? 'overflow' : (silos.fillPct >= 80 ? 'warning' : '')}`;
+        }
+        if (siloCredits) siloCredits.innerText = `ARMAZENADO: $ ${silos.credits.toLocaleString('en-US')}`;
+        if (siloCapacity) siloCapacity.innerText = `CAPACIDADE MÁXIMA: $ ${silos.totalCapacity.toLocaleString('en-US')} (HQ $3.500 + Silos $${silos.siloCapacity.toLocaleString('en-US')})`;
+        if (siloPct) siloPct.innerText = `LOTAÇÃO: ${silos.fillPct}%`;
+
+        if (siloAlert) {
+          if (silos.isOverflow) {
+            siloAlert.className = 'pwr-alert-box overflow';
+            siloAlert.innerHTML = `⚠️ <strong>ALERTA DE CAPACIDADE MÁXIMA:</strong> Seus silos e HQ estão com capacidade total atingida! Construa mais <strong>Silos de Tiberium</strong> na aba de Estruturas para evitar perda de recursos coletados.`;
+          } else if (silos.fillPct >= 80) {
+            siloAlert.className = 'pwr-alert-box overflow';
+            siloAlert.innerHTML = `⚠️ <strong>AVISO DE ARMAZENAMENTO:</strong> 80%+ da capacidade atingida. Considere construir Silos de Tiberium adicionais.`;
+          } else {
+            siloAlert.className = 'pwr-alert-box ok';
+            const freeCredits = Math.max(0, silos.totalCapacity - silos.credits);
+            siloAlert.innerHTML = `✅ <strong>CAPACIDADE ESTÁVEL:</strong> Há espaço livre para mais <strong>$ ${freeCredits.toLocaleString('en-US')} créditos</strong> em Tiberium líquido nos tanques.`;
+          }
+        }
+      }
+
+      recalculatePower() {
+        const breakdown = this.getPowerGridBreakdown();
+        const produced = breakdown.totalProduced;
+        const consumed = breakdown.totalConsumed;
+        const siloCount = breakdown.silos.count;
+
+        this.creditCapacity = breakdown.silos.totalCapacity;
         this.powerProduced = produced;
         this.powerConsumed = consumed;
 
@@ -934,6 +1489,10 @@ export class Engine {
         const powerNeedle = document.getElementById('power-needle');
         const powerDisplay = document.getElementById('powerDisplay');
         const baseStatus = document.getElementById('hud-base-status');
+        const sustainingSubtext = document.getElementById('power-sustaining-subtext');
+        const powerGridTag = document.getElementById('power-grid-summary-tag');
+        const siloBadge = document.getElementById('silo-summary-badge');
+        const siloBar = document.getElementById('silo-meter-fill');
 
         if (powerDisplay) powerDisplay.innerText = `${produced} / ${consumed} GW`;
 
@@ -946,11 +1505,51 @@ export class Engine {
 
         if (baseStatus) {
           if (consumed > produced) {
-            baseStatus.innerText = 'ENERGIA CRÍTICA (BAIXA)'; baseStatus.style.color = '#ff3344';
+            baseStatus.innerText = `ENERGIA CRÍTICA (-${consumed - produced} GW)`;
+            baseStatus.style.color = '#ff3344';
           } else {
-            baseStatus.innerText = 'ENERGIZADA (100%)'; baseStatus.style.color = '#00ff66';
+            baseStatus.innerText = `ENERGIZADA (100% | +${produced - consumed} GW)`;
+            baseStatus.style.color = '#00ff66';
           }
         }
+
+        if (sustainingSubtext) {
+          if (breakdown.consumers.length === 0) {
+            sustainingSubtext.innerText = `Sustentando: Base em Espera (+${produced} GW livre)`;
+          } else {
+            const listStr = breakdown.consumers.map(c => `${c.count}x ${c.name.split(' ')[0]}`).join(', ');
+            const diffStr = breakdown.surplus >= 0 ? `+${breakdown.surplus} GW livre` : `Déficit: ${breakdown.surplus} GW!`;
+            sustainingSubtext.innerText = `Sustentando: ${listStr} (${diffStr})`;
+          }
+        }
+
+        if (powerGridTag) {
+          if (breakdown.isCritical) {
+            powerGridTag.className = 'pwr-grid-tag critical';
+            powerGridTag.innerText = `SOBRECARGA`;
+          } else {
+            powerGridTag.className = 'pwr-grid-tag';
+            powerGridTag.innerText = `REDE 100%`;
+          }
+        }
+
+        const fillPct = breakdown.silos.fillPct;
+        if (siloBadge) {
+          siloBadge.className = `silo-badge ${breakdown.silos.isOverflow ? 'overflow' : ''}`;
+          siloBadge.innerText = `${siloCount} SILO(S) (${fillPct}%)`;
+        }
+        if (siloBar) {
+          siloBar.style.width = `${Math.min(100, fillPct)}%`;
+          if (breakdown.silos.isOverflow) {
+            siloBar.style.background = '#ff3344';
+          } else if (fillPct >= 80) {
+            siloBar.style.background = '#ffaa00';
+          } else {
+            siloBar.style.background = 'var(--tiberium)';
+          }
+        }
+
+        this.renderPowerGridModal();
       }
 
       updateEconomyDisplay() {
@@ -960,6 +1559,30 @@ export class Engine {
           creditDisplay.classList.add('flash');
           setTimeout(() => creditDisplay.classList.remove('flash'), 300);
         }
+
+        const siloBadge = document.getElementById('silo-summary-badge');
+        const siloBar = document.getElementById('silo-meter-fill');
+        const fillRatio = this.creditCapacity > 0 ? (this.credits / this.creditCapacity) : 0;
+        const fillPct = Math.round(fillRatio * 100);
+        const isOverflow = this.credits >= this.creditCapacity;
+
+        if (siloBadge) {
+          const siloCount = this.buildings.filter(b => this.isFriendly(b.faction) && b.type === 'silo' && b.hp > 0 && !b.isConstructing).length;
+          siloBadge.className = `silo-badge ${isOverflow ? 'overflow' : ''}`;
+          siloBadge.innerText = `${siloCount} SILO(S) (${fillPct}%)`;
+        }
+        if (siloBar) {
+          siloBar.style.width = `${Math.min(100, fillPct)}%`;
+          if (isOverflow) {
+            siloBar.style.background = '#ff3344';
+          } else if (fillPct >= 80) {
+            siloBar.style.background = '#ffaa00';
+          } else {
+            siloBar.style.background = 'var(--tiberium)';
+          }
+        }
+
+        this.renderPowerGridModal();
       }
 
       showFloatingCredit(worldX, worldY, text) {
@@ -1127,58 +1750,138 @@ export class Engine {
         const isHostOrSolo = (!this.multiplayer || !this.multiplayer.connected || this.multiplayer.isHost);
         if (!isHostOrSolo) return;
 
+        if (!this.aiCredits || typeof this.aiCredits !== 'object') {
+          this.aiCredits = { slot2: 3000, slot3: 3000, slot4: 3000 };
+        }
+        if (!this.aiBuildTimers || typeof this.aiBuildTimers !== 'object') {
+          this.aiBuildTimers = { slot2: 0, slot3: 0, slot4: 0 };
+        }
+
         ['slot2', 'slot3', 'slot4'].forEach(slot => {
           const cfg = this.slotConfigs[slot];
           if (!cfg || !cfg.startsWith('ai_')) return;
 
-          let buildInterval = 22;
+          // Renda econômica passiva + mineração de colhedoras do bot
+          const botHarvesters = this.units.filter(u => u.faction === slot && u.type === 'harvester' && u.hp > 0);
+          const incomeRate = (cfg === 'ai_brutal' ? 45 : (cfg === 'ai_medium' ? 30 : 18)) + (botHarvesters.length * 20);
+          this.aiCredits[slot] = Math.min(10000, (this.aiCredits[slot] || 0) + incomeRate * dt);
+
+          // 1. GESTÃO ESTRATÉGICA DE INFRAESTRUTURA (CONSTRUÇÃO / RECONSTRUÇÃO)
+          this.aiBuildTimers[slot] = (this.aiBuildTimers[slot] || 0) + dt;
+          if (this.aiBuildTimers[slot] >= (cfg === 'ai_brutal' ? 10 : 16)) {
+            this.aiBuildTimers[slot] = 0;
+
+            const botBuildings = this.buildings.filter(b => b.faction === slot && b.hp > 0);
+            const hq = botBuildings.find(b => b.type === 'hq');
+            const pwr = botBuildings.find(b => b.type === 'power');
+            const ref = botBuildings.find(b => b.type === 'refinery');
+            const bar = botBuildings.find(b => b.type === 'barracks');
+            const fac = botBuildings.find(b => b.type === 'factory');
+            const turrets = botBuildings.filter(b => b.type === 'turret' || b.type === 'obelisk');
+
+            const baseAnchor = hq || fac || ref || botBuildings[0];
+
+            if (baseAnchor) {
+              // A) Prioridade 1: Reconstruir Usina se sem energia ou sem usina
+              if (!pwr && this.aiCredits[slot] >= 300) {
+                this.aiCredits[slot] -= 300;
+                const nb = new Building(baseAnchor.x - 110, baseAnchor.y - 40, 'power', slot, true);
+                this.buildings.push(nb);
+                if (this.map) this.map.registerBuilding(nb);
+              }
+              // B) Prioridade 2: Reconstruir Refinaria se destruída
+              else if (!ref && this.aiCredits[slot] >= 800) {
+                this.aiCredits[slot] -= 800;
+                const nb = new Building(baseAnchor.x - 80, baseAnchor.y + 110, 'refinery', slot, true);
+                this.buildings.push(nb);
+                if (this.map) this.map.registerBuilding(nb);
+              }
+              // C) Prioridade 3: Reconstruir Fábrica de Guerra se destruída
+              else if (!fac && this.aiCredits[slot] >= 1000) {
+                this.aiCredits[slot] -= 1000;
+                const nb = new Building(baseAnchor.x + 100, baseAnchor.y + 90, 'factory', slot, true);
+                this.buildings.push(nb);
+                if (this.map) this.map.registerBuilding(nb);
+              }
+              // D) Prioridade 4: Reconstruir Quartel se destruído
+              else if (!bar && this.aiCredits[slot] >= 400) {
+                this.aiCredits[slot] -= 400;
+                const nb = new Building(baseAnchor.x, baseAnchor.y + 120, 'barracks', slot, true);
+                this.buildings.push(nb);
+                if (this.map) this.map.registerBuilding(nb);
+              }
+              // E) Prioridade 5: Fortificação Perimetral (Torres Tesla ou Obelisco NOD)
+              else if (turrets.length < (cfg === 'ai_brutal' ? 4 : 2) && this.aiCredits[slot] >= 600) {
+                this.aiCredits[slot] -= 500;
+                const offsetAngle = turrets.length * (Math.PI / 2);
+                const tx = baseAnchor.x + Math.cos(offsetAngle) * 160;
+                const ty = baseAnchor.y + Math.sin(offsetAngle) * 160;
+                const bType = (cfg === 'ai_brutal' && Math.random() > 0.5) ? 'obelisk' : 'turret';
+                const nb = new Building(tx, ty, bType, slot, true);
+                this.buildings.push(nb);
+                if (this.map) this.map.registerBuilding(nb);
+              }
+            }
+          }
+
+          // 2. GESTÃO DE COLHEDORAS (Reposição Econômica Vital)
+          if (botHarvesters.length === 0) {
+            const fac = this.buildings.find(b => b.type === 'factory' && b.faction === slot && b.hp > 0 && !b.isConstructing);
+            if (fac && this.aiCredits[slot] >= 800) {
+              this.aiCredits[slot] -= 800;
+              const newHarv = new Unit(fac.spawnX, fac.spawnY, 'harvester', slot);
+              this.units.push(newHarv);
+            }
+          }
+
+          // 3. TREINAMENTO DE TROPAS E ATAQUES DE PELOTÃO
+          let buildInterval = 18;
           let squadThreshold = 4;
-          if (cfg === 'ai_easy') { buildInterval = 36; squadThreshold = 3; }
-          if (cfg === 'ai_brutal') { buildInterval = 12; squadThreshold = 6; }
+          if (cfg === 'ai_easy') { buildInterval = 30; squadThreshold = 3; }
+          if (cfg === 'ai_brutal') { buildInterval = 9; squadThreshold = 6; }
 
           this.aiTimers[slot] = (this.aiTimers[slot] || 0) + dt;
           if (this.aiTimers[slot] >= buildInterval) {
             this.aiTimers[slot] = 0;
 
-            const fac = this.buildings.find(b => b.type === 'factory' && b.faction === slot && b.hp > 0);
-            if (fac) {
+            const fac = this.buildings.find(b => b.type === 'factory' && b.faction === slot && b.hp > 0 && !b.isConstructing);
+            const bar = this.buildings.find(b => b.type === 'barracks' && b.faction === slot && b.hp > 0 && !b.isConstructing);
+
+            if (fac && this.aiCredits[slot] >= 400) {
               const types = cfg === 'ai_brutal' ? ['tank', 'mammoth', 'rocket', 'helicopter'] : ['tank', 'rocket', 'rifleman'];
               const chosen = types[Math.floor(Math.random() * types.length)];
+              this.aiCredits[slot] -= 400;
               const newBotUnit = new Unit(fac.spawnX, fac.spawnY, chosen, slot);
-              this.units.push(newBotUnit);
-              if (this.multiplayer && this.multiplayer.connected) {
-                this.multiplayer.send({
-                  type: 'CMD_TRAIN',
-                  uid: newBotUnit.uid,
-                  unitType: chosen,
-                  spawnX: fac.spawnX,
-                  spawnY: fac.spawnY,
-                  targetX: fac.spawnX,
-                  targetY: fac.spawnY,
-                  faction: slot
-                });
+              if (fac.rallyPoint) {
+                newBotUnit.moveTo(fac.rallyPoint.x, fac.rallyPoint.y, this);
               }
+              this.units.push(newBotUnit);
+            } else if (bar && this.aiCredits[slot] >= 150) {
+              this.aiCredits[slot] -= 150;
+              const chosen = Math.random() > 0.4 ? 'rifleman' : 'rocket';
+              const newBotUnit = new Unit(bar.spawnX, bar.spawnY, chosen, slot);
+              if (bar.rallyPoint) {
+                newBotUnit.moveTo(bar.rallyPoint.x, bar.rallyPoint.y, this);
+              }
+              this.units.push(newBotUnit);
             }
 
-            // Unidades de ataque formam pelotão e marcham contra qualquer inimigo não-aliado
+            // Pelotão formado ataca inimigos
             const squad = this.units.filter(u => u.faction === slot && u.type !== 'harvester' && u.hp > 0);
             if (squad.length >= squadThreshold) {
-              // Encontra todos os inimigos (outros bots ou o jogador) que NÃO são aliados deste slot
               const enemyBuildings = this.buildings.filter(b => b.hp > 0 && this.areEnemies(b.faction, slot));
               const enemyUnits = this.units.filter(u => u.hp > 0 && this.areEnemies(u.faction, slot) && u.type !== 'harvester');
 
               let oppTarget = null;
-
-              // 1. Checa se o bot tem alvo de retaliação recente
               const retaliateSlot = this.aiRetaliationTarget && this.aiRetaliationTarget[slot];
               if (retaliateSlot && this.areEnemies(retaliateSlot, slot)) {
                 oppTarget = enemyBuildings.find(b => b.faction === retaliateSlot) ||
                             enemyUnits.find(u => u.faction === retaliateSlot);
               }
 
-              // 2. Se não houver retaliação, prioriza alvos por proximidade à base do bot com variação tática
               if (!oppTarget && (enemyBuildings.length > 0 || enemyUnits.length > 0)) {
-                const basePos = fac ? { x: fac.x, y: fac.y } : (squad[0] ? { x: squad[0].x, y: squad[0].y } : { x: 1200, y: 900 });
+                const facObj = this.buildings.find(b => b.type === 'factory' && b.faction === slot);
+                const basePos = facObj ? { x: facObj.x, y: facObj.y } : (squad[0] ? { x: squad[0].x, y: squad[0].y } : { x: 1200, y: 900 });
                 let bestScore = Infinity;
 
                 [...enemyBuildings, ...enemyUnits].forEach(ent => {
@@ -1198,8 +1901,7 @@ export class Engine {
                   this.eva.speak('Our base is under attack.', 14000);
                   this.showEvaMessage(`ALERTA: FORÇAS DE ${slot.toUpperCase()} ATACANDO ALIANÇA ALIADA!`);
                   this.sounds.playEvaChime('alert');
-                } else {
-                  this.showEvaMessage(`CONFLITO TÁTICO: ${slot.toUpperCase()} ENGATILHOU GUERRA CONTRA ${oppTarget.faction.toUpperCase()}`);
+                  if (this.map) this.map.addRadarPing(oppTarget.x, oppTarget.y, '#ff3344', 4.0);
                 }
               }
             }
@@ -1319,14 +2021,35 @@ export class Engine {
 
       drawRadar() {
         const radarCanvas = document.getElementById('radarCanvas');
+        if (!radarCanvas) return;
         const rctx = radarCanvas.getContext('2d');
         const rw = radarCanvas.width, rh = radarCanvas.height;
 
+        // Fundo base
         rctx.fillStyle = '#060a0e';
         rctx.fillRect(0, 0, rw, rh);
 
         const sx = rw / this.map.width;
         const sy = rh / this.map.height;
+
+        // Renderiza o terreno real no radar minimap!
+        if (this.map && this.map.terrainCanvas) {
+          rctx.drawImage(this.map.terrainCanvas, 0, 0, rw, rh);
+        }
+
+        // Shroud no radar (sombra escura para áreas inexploradas)
+        if (this.map && this.map.shroudEnabled && this.map.shroud) {
+          rctx.fillStyle = 'rgba(6, 10, 16, 0.72)';
+          const cellW = rw / this.map.cols;
+          const cellH = rh / this.map.rows;
+          for (let r = 0; r < this.map.rows; r += 2) {
+            for (let c = 0; c < this.map.cols; c += 2) {
+              if (this.map.shroud[r * this.map.cols + c] === 0) {
+                rctx.fillRect(c * cellW, r * cellH, cellW * 2, cellH * 2);
+              }
+            }
+          }
+        }
 
         // Tiberium
         rctx.fillStyle = '#00ff77';
@@ -1352,6 +2075,19 @@ export class Engine {
           }
         });
 
+        // Pings de Alerta Tático no Radar
+        if (this.map && this.map.radarPings && this.map.radarPings.length > 0) {
+          this.map.radarPings.forEach(ping => {
+            rctx.save();
+            rctx.strokeStyle = ping.color || '#ff3344';
+            rctx.lineWidth = 1.8;
+            rctx.beginPath();
+            rctx.arc(ping.x * sx, ping.y * sy, Math.max(3, ping.radius * sx), 0, Math.PI * 2);
+            rctx.stroke();
+            rctx.restore();
+          });
+        }
+
         const viewW = (this.canvas.width / this.camera.zoom) * sx;
         const viewH = (this.canvas.height / this.camera.zoom) * sy;
         rctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
@@ -1360,8 +2096,21 @@ export class Engine {
       }
 
       gameLoop(time) {
-        const dt = Math.min(0.1, (time - this.lastTime) / 1000);
+        const rawDt = Math.min(0.1, (time - this.lastTime) / 1000);
         this.lastTime = time;
+
+        if (this.map && this.map.updateRadarPings) {
+          this.map.updateRadarPings(rawDt);
+        }
+
+        // Se pausado (gameSpeed === 0), desenha o frame mas interrompe simulação
+        if (this.gameSpeed === 0) {
+          this.render();
+          requestAnimationFrame((t) => this.gameLoop(t));
+          return;
+        }
+
+        const dt = rawDt * this.gameSpeed;
 
         this.sidebar.update(dt);
         this.updateAI(dt);
@@ -1386,8 +2135,16 @@ export class Engine {
           const b = this.buildings[i];
           b.update(dt, this);
           if (b.hp <= 0) {
-            if (this.isFriendly(b.faction)) this.eva.speak('Our base is under attack.', 12000);
-            else this.battleStats.structuresDestroyed++;
+            if (this.isFriendly(b.faction)) {
+              this.eva.speak('Our base is under attack.', 12000);
+              if (this.map) this.map.addRadarPing(b.x, b.y, '#ff3344', 4.5);
+            } else {
+              this.battleStats.structuresDestroyed++;
+            }
+            if (this.map) {
+              this.map.unregisterBuilding(b);
+              this.map.addBuildingRubble(b.x, b.y, b.width, b.height);
+            }
             this.buildings.splice(i, 1);
             this.recalculatePower();
             this.updateSelectionInspection();
@@ -1400,8 +2157,12 @@ export class Engine {
           u.update(dt, this);
           if (u.hp <= 0) {
             if (this.isFriendly(u.faction)) {
-              if (u.type === 'harvester') this.eva.speak('Harvester under attack.', 10000);
-              else this.eva.speak('Unit lost.', 8000);
+              if (u.type === 'harvester') {
+                this.eva.speak('Harvester under attack.', 10000);
+                if (this.map) this.map.addRadarPing(u.x, u.y, '#ff3344', 4.5);
+              } else {
+                this.eva.speak('Unit lost.', 8000);
+              }
             } else {
               this.battleStats.kills++;
             }

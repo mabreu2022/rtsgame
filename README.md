@@ -72,6 +72,17 @@ Um jogo clássico de Estratégia em Tempo Real (RTS) militar no estilo **Command
 - **Link de Convite Direto com 1 Clique:** Copie links como `?room=GDI-XXXX` para entrada imediata de amigos.
 - **Auto-Descoberta na Rede / Navegador:** Painel de comandantes online em tempo real com convites via toast flutuante.
 
+### ⚔️ Física Tática, Pathfinding A* & Controles Militares Avançados
+- **Pathfinding A* (A-Star) 8-Way com Line-of-Sight Smoothing:** Navegação inteligente contornando obstáculos, montanhas e pegadas físicas de edifícios (`setGrid`), com alisamento de trajetória por raycasting Bresenham.
+- **Flocking & Repulsão Física Suave (Anti-Death-Stack):** Separação elástica entre tropas terrestres aliadas para evitar sobreposição artificial de unidades.
+- **Attack-Move (`A` / Botão HUD):** Deslocamento agressivo onde o esquadrão interrompe a marcha para atacar qualquer ameaça avistada.
+- **Patrulha Militar (`P` / Botão HUD):** As tropas realizam vigília contínua de ida e volta entre a posição de origem e o destino.
+- **Fila de Waypoints (`Shift + Clique Dir.`):** Encadeamento de rotas e ordens de combate sequenciais.
+- **Rally Points (Pontos de Encontro):** Clique com botão direito tendo Quartel ou Fábrica selecionada para definir onde as novas tropas recém-produzidas se reúnem (com guia tracejada e bandeira animada).
+- **Simulação & QuickSave/Load:** Pausa estratégica com `Espaço`, velocidades 1x/2x no HUD, e salvamento instantâneo com `F5` e carregamento com `F9` via `localStorage`.
+- **IA Estratégica Completa com Reconstrução:** Bots acumulam economia, repõem usinas de energia, reconstroem refinarias e fábricas caídas, treinam novas colhedoras e constroem defesas de perímetro.
+- **Partículas de Dano Crítico & Escombros:** Fumaça e faíscas em tropas com < 35% HP, chamas em prédios avariados e escombros (rubble) queimados permanentes no solo.
+
 ### 🏆 4 Condições de Vitória Selecionáveis
 1. **Aniquilação Total:** Destruição completa de todas as tropas e bases adversárias.
 2. **Destruição de HQ:** Neutralização do Centro de Comando inimigo mantendo o seu protegido.
@@ -133,6 +144,14 @@ jogo/
 | **Botão Direito** | Move unidades, ordena ataque, minera ou embarca em transportes |
 | **Clique Esquerdo no Radar** | **Centraliza a câmera imediatamente** no local clicado no minimap |
 | **Clique Direito no Radar** | **Move as tropas selecionadas diretamente pelo minimap** (Click-to-Move) |
+| **A / Botão HUD** | **Attack-Move:** Move as tropas atacando alvos no caminho |
+| **P / Botão HUD** | **Patrulha Militar:** Patrulha contínua ida e volta |
+| **Shift + Clique Direito** | **Fila de Waypoints:** Encadeia múltiplos destinos e ordens |
+| **Clique Dir. (Quartel/Fábrica)** | **Rally Point:** Define ponto de encontro de novas tropas com guia tracejada |
+| **Espaço / Botão HUD** | **Pausar Simulação:** Congela o tempo para planejamento calmo |
+| **1x / 2x (HUD)** | **Velocidade da Batalha:** Simulação normal ou acelerada 2x |
+| **F5 / Botão HUD** | **QuickSave:** Salva o estado completo no `localStorage` |
+| **F9 / Botão HUD** | **QuickLoad:** Restaura instantaneamente o save |
 | **Scroll do Mouse** | Zoom in / Zoom out contínuo na câmera |
 | **W, A, S, D** | Navegação panorâmica da câmera pelo mapa |
 | **Ctrl + 1..9** | Atribui as unidades selecionadas ao **Grupo N** |

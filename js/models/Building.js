@@ -65,6 +65,12 @@ export class Building {
         this.smokeTimer = 0;
         this.repairTick = 0;
         this.animPhase = Math.random() * Math.PI * 2;
+
+        // Ponto de Encontro Tático (Rally Point)
+        this.rallyPoint = null;
+        if (type === 'barracks' || type === 'factory') {
+          this.rallyPoint = { x: this.spawnX, y: this.spawnY + 55 };
+        }
       }
 
       update(dt, engine) {
@@ -87,6 +93,7 @@ export class Building {
             engine.sounds.playEvaChime('ready');
             engine.eva.speak('Construction complete.');
             engine.showEvaMessage(`${this.name.toUpperCase()} OPERACIONAL`);
+            if (engine.map) engine.map.registerBuilding(this);
             engine.recalculatePower();
           }
           return;
@@ -110,17 +117,21 @@ export class Building {
           this.isRepairing = false;
         }
 
-        // Fumaça se danificada (<50%)
-        if (this.hp < this.maxHp * 0.5) {
+        // Fumaça e chamas se danificada (<50% e <35%)
+        if (this.hp < this.maxHp * 0.5 && this.hp > 0) {
           this.smokeTimer += dt;
           if (this.smokeTimer > 0.12) {
             this.smokeTimer = 0;
-            engine.particles.particles.push({
-              x: this.x + (Math.random() - 0.5) * (this.width * 0.6),
-              y: this.y + (Math.random() - 0.5) * (this.height * 0.6),
-              vx: (Math.random() - 0.5) * 8, vy: -25 - Math.random() * 20,
-              type: 'smoke', radius: 12, growth: 10, life: 0.9, maxLife: 0.9, color: 'rgba(30, 30, 30,'
-            });
+            if (this.hp < this.maxHp * 0.35) {
+              engine.particles.createBuildingFire(this.x, this.y, this.width, this.height);
+            } else {
+              engine.particles.particles.push({
+                x: this.x + (Math.random() - 0.5) * (this.width * 0.6),
+                y: this.y + (Math.random() - 0.5) * (this.height * 0.6),
+                vx: (Math.random() - 0.5) * 8, vy: -25 - Math.random() * 20,
+                type: 'smoke', radius: 12, growth: 10, life: 0.9, maxLife: 0.9, color: 'rgba(30, 30, 30,'
+              });
+            }
           }
         }
 
@@ -242,6 +253,36 @@ export class Building {
           ctx.fillStyle = '#00e5ff';
           ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
 
+          // MARCADOR TÁTICO DE ENERGIA DA USINA (Power Plant Energy Marker)
+          const actualGen = (this.hp < this.maxHp * 0.5) ? Math.floor(this.powerGen * 0.5) : this.powerGen;
+          const badgeY = (this.selected || this.hp < this.maxHp) ? (-this.height / 2 - 27) : (-this.height / 2 - 17);
+          const badgeW = 68;
+          const badgeH = 14;
+
+          ctx.save();
+          // Fundo do badge com visual cyber militar
+          ctx.fillStyle = 'rgba(7, 14, 22, 0.88)';
+          ctx.fillRect(-badgeW / 2, badgeY, badgeW, badgeH);
+          ctx.strokeStyle = actualGen < this.powerGen ? '#ffaa00' : '#00e5ff';
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(-badgeW / 2, badgeY, badgeW, badgeH);
+
+          // Efeito de pulso de circuito
+          const ledX = -badgeW / 2 + 7;
+          ctx.fillStyle = actualGen < this.powerGen ? '#ffaa00' : (glowPulse > 0.7 ? '#00ff66' : '#00e5ff');
+          ctx.beginPath();
+          ctx.arc(ledX, badgeY + badgeH / 2, 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Texto com geração de GW
+          ctx.font = 'bold 8.5px "Orbitron", monospace, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = actualGen < this.powerGen ? '#ffbb33' : '#00e5ff';
+          const statusText = actualGen < this.powerGen ? `⚡ +${actualGen} GW [!]` : `⚡ +${actualGen} GW`;
+          ctx.fillText(statusText, 4, badgeY + badgeH / 2);
+          ctx.restore();
+
         } else if (this.type === 'barracks') {
           ctx.fillStyle = '#223026';
           ctx.fillRect(-34, -26, 68, 52);
@@ -312,21 +353,73 @@ export class Building {
           ctx.restore();
 
         } else if (this.type === 'silo') {
-          // Silo de Armazenamento Tiberium com Tanques Duplos e Medidor de Nível
+          // Silo de Armazenamento Tiberium com Tanques Duplos e Medidor de Nível em Tempo Real
           ctx.fillStyle = '#1b242e';
           ctx.fillRect(-20, -18, 40, 36);
           ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 2; ctx.strokeRect(-20, -18, 40, 36);
 
-          // 2 Cilindros Metálicos
-          ctx.fillStyle = '#2c3e50';
-          ctx.beginPath(); ctx.arc(-10, -2, 9, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.arc(10, -2, 9, 0, Math.PI * 2); ctx.fill();
+          // Cálculo do percentual de lotação global dos silos
+          const game = window.game;
+          let fillRatio = 0;
+          if (game && game.creditCapacity > 0) {
+            fillRatio = Math.min(1.0, Math.max(0, game.credits / game.creditCapacity));
+          }
 
-          // Visores de Cristais de Tiberium Líquido
-          const glow = 0.5 + Math.sin(this.animPhase * 3) * 0.5;
-          ctx.fillStyle = `rgba(0, 255, 119, ${glow * 0.9})`;
-          ctx.fillRect(-12, -7, 4, 10);
-          ctx.fillRect(8, -7, 4, 10);
+          // 2 Cilindros Metálicos (Tanques de Vidro com Tiberium Líquido Fluindo)
+          const tankRadius = 9;
+          [-10, 10].forEach(tx => {
+            // Fundo escuro do cilindro
+            ctx.fillStyle = '#121820';
+            ctx.beginPath(); ctx.arc(tx, -2, tankRadius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 1.5; ctx.stroke();
+
+            // Líquido de Tiberium subindo conforme a lotação
+            if (fillRatio > 0.01) {
+              const liquidHeight = Math.min(16, Math.max(2, fillRatio * 16));
+              const liquidGlow = 0.6 + Math.sin(this.animPhase * 3 + tx) * 0.35;
+              const fillGrad = ctx.createLinearGradient(tx, 6, tx, 6 - liquidHeight);
+              fillGrad.addColorStop(0, `rgba(0, 200, 80, ${liquidGlow * 0.85})`);
+              fillGrad.addColorStop(0.6, `rgba(0, 255, 120, ${liquidGlow})`);
+              fillGrad.addColorStop(1, '#a8ffb2');
+              ctx.fillStyle = fillGrad;
+
+              ctx.save();
+              ctx.beginPath(); ctx.arc(tx, -2, tankRadius - 1.5, 0, Math.PI * 2); ctx.clip();
+              ctx.fillRect(tx - tankRadius, 6 - liquidHeight, tankRadius * 2, liquidHeight);
+              ctx.restore();
+            }
+
+            // Reflexo de vidro no cilindro
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fillRect(tx - 1, -8, 2, 12);
+          });
+
+          // MARCADOR DE MEDIÇÃO E LOTAÇÃO DO SILO (Silo Fill Measurement Badge)
+          const fillPct = Math.round(fillRatio * 100);
+          const badgeY = (this.selected || this.hp < this.maxHp) ? (-this.height / 2 - 27) : (-this.height / 2 - 17);
+          const badgeW = 72;
+          const badgeH = 14;
+
+          ctx.save();
+          ctx.fillStyle = 'rgba(6, 16, 12, 0.88)';
+          ctx.fillRect(-badgeW / 2, badgeY, badgeW, badgeH);
+          ctx.strokeStyle = fillPct >= 95 ? '#ff3344' : (fillPct >= 80 ? '#ffaa00' : '#00ff77');
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(-badgeW / 2, badgeY, badgeW, badgeH);
+
+          // Mini barra interna de nível de armazenamento
+          const barPad = 2;
+          const barFillW = (badgeW - barPad * 2) * Math.min(1, fillRatio);
+          ctx.fillStyle = fillPct >= 95 ? 'rgba(255, 51, 68, 0.4)' : 'rgba(0, 255, 119, 0.3)';
+          ctx.fillRect(-badgeW / 2 + barPad, badgeY + barPad, barFillW, badgeH - barPad * 2);
+
+          // Texto com a medição de lotação
+          ctx.font = 'bold 8px "Orbitron", monospace, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = fillPct >= 95 ? '#ff4d5a' : (fillPct >= 80 ? '#ffbb33' : '#00ff77');
+          ctx.fillText(`SILO: ${fillPct}% LOTADO`, 0, badgeY + badgeH / 2);
+          ctx.restore();
 
         } else if (this.type === 'obelisk') {
           // Obelisco de Luz NOD: Agulha Negra com Cristal Escarlate no Topo
@@ -406,9 +499,35 @@ export class Building {
         }
 
         ctx.restore();
+
+        // Renderização do Rally Point (Ponto de Encontro) quando selecionado
+        if (this.selected && this.rallyPoint && (this.type === 'barracks' || this.type === 'factory')) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(0, 229, 255, 0.7)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.lineDashOffset = -performance.now() * 0.02;
+          ctx.beginPath();
+          ctx.moveTo(this.spawnX, this.spawnY);
+          ctx.lineTo(this.rallyPoint.x, this.rallyPoint.y);
+          ctx.stroke();
+
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#00e5ff';
+          ctx.beginPath();
+          ctx.arc(this.rallyPoint.x, this.rallyPoint.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(this.rallyPoint.x, this.rallyPoint.y, 8, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.font = 'bold 10px monospace';
+          ctx.fillStyle = '#00e5ff';
+          ctx.fillText('🚩 RALLY', this.rallyPoint.x + 10, this.rallyPoint.y + 4);
+          ctx.restore();
+        }
       }
     }
-
-    /* =========================================================================
-       5. UNIDADES COM VETERANIA, ESMAGAMENTO E TOXICIDADE
-       ========================================================================= */

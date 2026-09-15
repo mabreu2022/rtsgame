@@ -26,6 +26,7 @@ export class MapEngine {
     this.tiberiumFields = [];
     this.roads = [];
     this.lavaFissures = [];
+    this.radarPings = [];
     this.generateWorld();
   }
 
@@ -38,6 +39,291 @@ export class MapEngine {
   getGrid(col, row) {
     if (col < 0 || col >= this.cols || row < 0 || row >= this.rows) return 1;
     return this.grid[row * this.cols + col];
+  }
+
+  registerBuilding(b) {
+    if (!b) return;
+    const halfW = b.width / 2;
+    const halfH = b.height / 2;
+    const minCol = Math.max(0, Math.floor((b.x - halfW + 6) / this.tileSize));
+    const maxCol = Math.min(this.cols - 1, Math.floor((b.x + halfW - 6) / this.tileSize));
+    const minRow = Math.max(0, Math.floor((b.y - halfH + 6) / this.tileSize));
+    const maxRow = Math.min(this.rows - 1, Math.floor((b.y + halfH - 6) / this.tileSize));
+
+    const exemptTiles = new Set();
+    if (b.spawnX && b.spawnY) {
+      const sc = Math.floor(b.spawnX / this.tileSize);
+      const sr = Math.floor(b.spawnY / this.tileSize);
+      exemptTiles.add(`${sc},${sr}`);
+    }
+    if (b.dockX && b.dockY) {
+      const dc = Math.floor(b.dockX / this.tileSize);
+      const dr = Math.floor(b.dockY / this.tileSize);
+      exemptTiles.add(`${dc},${dr}`);
+    }
+
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        if (!exemptTiles.has(`${c},${r}`)) {
+          this.setGrid(c, r, 1);
+        }
+      }
+    }
+  }
+
+  unregisterBuilding(b) {
+    if (!b) return;
+    const halfW = b.width / 2;
+    const halfH = b.height / 2;
+    const minCol = Math.max(0, Math.floor((b.x - halfW) / this.tileSize));
+    const maxCol = Math.min(this.cols - 1, Math.floor((b.x + halfW) / this.tileSize));
+    const minRow = Math.max(0, Math.floor((b.y - halfH) / this.tileSize));
+    const maxRow = Math.min(this.rows - 1, Math.floor((b.y + halfH) / this.tileSize));
+
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        this.setGrid(c, r, 0);
+      }
+    }
+  }
+
+  addBuildingRubble(x, y, width, height) {
+    const ctx = this.decalCtx;
+    ctx.save();
+    const grad = ctx.createRadialGradient(x, y, 8, x, y, Math.max(width, height) * 0.7);
+    grad.addColorStop(0, 'rgba(12, 10, 8, 0.95)');
+    grad.addColorStop(0.5, 'rgba(28, 22, 16, 0.7)');
+    grad.addColorStop(1, 'rgba(10, 10, 10, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(width, height) * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#222830';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 7; i++) {
+      const rx = x + (Math.random() - 0.5) * (width * 0.6);
+      const ry = y + (Math.random() - 0.5) * (height * 0.6);
+      ctx.beginPath();
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx + (Math.random() - 0.5) * 22, ry + (Math.random() - 0.5) * 22);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  addRadarPing(x, y, color = '#ff3344', duration = 3.5) {
+    this.radarPings.push({
+      x, y, color, duration, timer: 0, radius: 0, maxRadius: 30
+    });
+  }
+
+  updateRadarPings(dt) {
+    for (let i = this.radarPings.length - 1; i >= 0; i--) {
+      const ping = this.radarPings[i];
+      ping.timer += dt;
+      ping.radius = ((ping.timer % 0.8) / 0.8) * ping.maxRadius;
+      if (ping.timer >= ping.duration) {
+        this.radarPings.splice(i, 1);
+      }
+    }
+  }
+
+  hasLineOfSight(x0, y0, x1, y1) {
+    let c0 = Math.floor(x0 / this.tileSize);
+    let r0 = Math.floor(y0 / this.tileSize);
+    const c1 = Math.floor(x1 / this.tileSize);
+    const r1 = Math.floor(y1 / this.tileSize);
+
+    const dc = Math.abs(c1 - c0);
+    const dr = Math.abs(r1 - r0);
+    const sc = (c0 < c1) ? 1 : -1;
+    const sr = (r0 < r1) ? 1 : -1;
+    let err = dc - dr;
+
+    while (true) {
+      if (this.getGrid(c0, r0) === 1) return false;
+      if (c0 === c1 && r0 === r1) break;
+      const e2 = 2 * err;
+      if (e2 > -dr) {
+        err -= dr;
+        c0 += sc;
+      }
+      if (e2 < dc) {
+        err += dc;
+        r0 += sr;
+      }
+    }
+    return true;
+  }
+
+  findPath(startX, startY, targetX, targetY) {
+    const startCol = Math.floor(startX / this.tileSize);
+    const startRow = Math.floor(startY / this.tileSize);
+    let targetCol = Math.floor(targetX / this.tileSize);
+    let targetRow = Math.floor(targetY / this.tileSize);
+
+    targetCol = Math.max(0, Math.min(this.cols - 1, targetCol));
+    targetRow = Math.max(0, Math.min(this.rows - 1, targetRow));
+
+    if (this.getGrid(targetCol, targetRow) === 1) {
+      const neighbors = [
+        { c: targetCol, r: targetRow - 1 },
+        { c: targetCol, r: targetRow + 1 },
+        { c: targetCol - 1, r: targetRow },
+        { c: targetCol + 1, r: targetRow },
+        { c: targetCol - 1, r: targetRow - 1 },
+        { c: targetCol + 1, r: targetRow - 1 },
+        { c: targetCol - 1, r: targetRow + 1 },
+        { c: targetCol + 1, r: targetRow + 1 },
+      ];
+      let bestAdj = null;
+      let minD = Infinity;
+      for (const n of neighbors) {
+        if (this.getGrid(n.c, n.r) === 0) {
+          const d = Math.hypot(n.c - startCol, n.r - startRow);
+          if (d < minD) { minD = d; bestAdj = n; }
+        }
+      }
+      if (bestAdj) {
+        targetCol = bestAdj.c;
+        targetRow = bestAdj.r;
+      } else {
+        return [{ x: targetX, y: targetY }];
+      }
+    }
+
+    if (startCol === targetCol && startRow === targetRow) {
+      return [{ x: targetX, y: targetY }];
+    }
+
+    if (this.hasLineOfSight(startX, startY, targetX, targetY)) {
+      return [{ x: targetX, y: targetY }];
+    }
+
+    const startIndex = startRow * this.cols + startCol;
+    const targetIndex = targetRow * this.cols + targetCol;
+
+    const openSet = [startIndex];
+    const cameFrom = new Int32Array(this.cols * this.rows).fill(-1);
+    const gScore = new Float32Array(this.cols * this.rows).fill(Infinity);
+    const fScore = new Float32Array(this.cols * this.rows).fill(Infinity);
+    const inOpenSet = new Uint8Array(this.cols * this.rows);
+
+    gScore[startIndex] = 0;
+    const h = (c, r) => Math.hypot(c - targetCol, r - targetRow);
+    fScore[startIndex] = h(startCol, startRow);
+    inOpenSet[startIndex] = 1;
+
+    let iterations = 0;
+    const maxIterations = 800;
+    let closestIndex = startIndex;
+    let closestDist = fScore[startIndex];
+
+    const dirs = [
+      { dc: 0, dr: -1, cost: 1 },
+      { dc: 0, dr: 1, cost: 1 },
+      { dc: -1, dr: 0, cost: 1 },
+      { dc: 1, dr: 0, cost: 1 },
+      { dc: -1, dr: -1, cost: 1.414 },
+      { dc: 1, dr: -1, cost: 1.414 },
+      { dc: -1, dr: 1, cost: 1.414 },
+      { dc: 1, dr: 1, cost: 1.414 }
+    ];
+
+    while (openSet.length > 0 && iterations < maxIterations) {
+      iterations++;
+      let lowestIdx = 0;
+      for (let i = 1; i < openSet.length; i++) {
+        if (fScore[openSet[i]] < fScore[openSet[lowestIdx]]) lowestIdx = i;
+      }
+      const current = openSet.splice(lowestIdx, 1)[0];
+      inOpenSet[current] = 0;
+
+      if (current === targetIndex) {
+        return this.reconstructAndSmoothPath(cameFrom, current, targetX, targetY);
+      }
+
+      const currCol = current % this.cols;
+      const currRow = Math.floor(current / this.cols);
+      const currDist = h(currCol, currRow);
+      if (currDist < closestDist) {
+        closestDist = currDist;
+        closestIndex = current;
+      }
+
+      for (const d of dirs) {
+        const nc = currCol + d.dc;
+        const nr = currRow + d.dr;
+        if (nc < 0 || nc >= this.cols || nr < 0 || nr >= this.rows) continue;
+
+        if (d.dc !== 0 && d.dr !== 0) {
+          if (this.getGrid(currCol + d.dc, currRow) === 1 || this.getGrid(currCol, currRow + d.dr) === 1) {
+            continue;
+          }
+        }
+
+        if (this.getGrid(nc, nr) === 1) continue;
+
+        const neighbor = nr * this.cols + nc;
+        const tentativeG = gScore[current] + d.cost;
+
+        if (tentativeG < gScore[neighbor]) {
+          cameFrom[neighbor] = current;
+          gScore[neighbor] = tentativeG;
+          fScore[neighbor] = tentativeG + h(nc, nr);
+
+          if (!inOpenSet[neighbor]) {
+            openSet.push(neighbor);
+            inOpenSet[neighbor] = 1;
+          }
+        }
+      }
+    }
+
+    if (closestIndex !== startIndex) {
+      return this.reconstructAndSmoothPath(cameFrom, closestIndex, targetX, targetY);
+    }
+
+    return [{ x: targetX, y: targetY }];
+  }
+
+  reconstructAndSmoothPath(cameFrom, currentIndex, targetX, targetY) {
+    const rawPath = [];
+    let curr = currentIndex;
+    while (curr !== -1) {
+      const c = curr % this.cols;
+      const r = Math.floor(curr / this.cols);
+      rawPath.push({
+        x: (c + 0.5) * this.tileSize,
+        y: (r + 0.5) * this.tileSize
+      });
+      curr = cameFrom[curr];
+    }
+    rawPath.reverse();
+
+    if (rawPath.length > 0) {
+      rawPath[rawPath.length - 1] = { x: targetX, y: targetY };
+    }
+
+    if (rawPath.length <= 2) return rawPath;
+
+    const smoothed = [rawPath[0]];
+    let currentIdx = 0;
+
+    while (currentIdx < rawPath.length - 1) {
+      let farthestVisible = currentIdx + 1;
+      for (let next = rawPath.length - 1; next > currentIdx + 1; next--) {
+        if (this.hasLineOfSight(rawPath[currentIdx].x, rawPath[currentIdx].y, rawPath[next].x, rawPath[next].y)) {
+          farthestVisible = next;
+          break;
+        }
+      }
+      smoothed.push(rawPath[farthestVisible]);
+      currentIdx = farthestVisible;
+    }
+
+    return smoothed;
   }
 
   isAreaFree(worldX, worldY, sizeRadius) {
@@ -655,8 +941,12 @@ export class MapEngine {
   }
 
   draw(ctx, viewport) {
-    ctx.drawImage(this.terrainCanvas, viewport.x, viewport.y, viewport.w, viewport.h, viewport.x, viewport.y, viewport.w, viewport.h);
-    ctx.drawImage(this.decalCanvas, viewport.x, viewport.y, viewport.w, viewport.h, viewport.x, viewport.y, viewport.w, viewport.h);
+    if (this.terrainCanvas) {
+      ctx.drawImage(this.terrainCanvas, 0, 0);
+    }
+    if (this.decalCanvas) {
+      ctx.drawImage(this.decalCanvas, 0, 0);
+    }
 
     const time = performance.now() * 0.003;
 

@@ -396,3 +396,41 @@
       color: #00ff66;
       font-weight: bold;
     }
+
+    /* CONTROLES DE VELOCIDADE E SALVAMENTO */
+    .hud-speed-controls {
+      border-left-color: #3498db !important;
+      min-width: 140px;
+    }
+    .hud-save-controls {
+      border-left-color: #9b59b6 !important;
+      min-width: 130px;
+    }
+    .speed-btn-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .speed-btn {
+      background: #141c24;
+      border: 1px solid #2d4156;
+      color: #a0c0d8;
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-family: var(--font-tech);
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .speed-btn:hover {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: #00e5ff;
+      color: #fff;
+    }
+    .speed-btn.active {
+      background: #00e5ff;
+      border-color: #00e5ff;
+      color: #0a0e14;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+    }

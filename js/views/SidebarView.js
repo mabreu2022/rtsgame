@@ -444,22 +444,37 @@ export class SidebarUI {
         else if (this.engine.myFaction === 'slot4') { spawnX = 1900; spawnY = 1450; }
 
         const isInf = ['rifleman', 'rocket', 'engineer', 'commando'].includes(unitId);
+        let producerBldg = null;
         if (isInf) {
           const barracks = this.engine.buildings.find(b => b.type === 'barracks' && b.faction === this.engine.myFaction && b.hp > 0);
-          if (barracks) { spawnX = barracks.spawnX; spawnY = barracks.spawnY; }
+          if (barracks) {
+            spawnX = barracks.spawnX;
+            spawnY = barracks.spawnY;
+            producerBldg = barracks;
+          }
         } else {
           const factory = this.engine.buildings.find(b => b.type === 'factory' && b.faction === this.engine.myFaction && b.hp > 0);
           if (factory) {
             factory.doorOpen = 1.0;
-            spawnX = factory.spawnX; spawnY = factory.spawnY;
+            spawnX = factory.spawnX;
+            spawnY = factory.spawnY;
+            producerBldg = factory;
           }
         }
 
         const uid = `${this.engine.myFaction}_u_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
         const newUnit = new Unit(spawnX, spawnY, unitId, this.engine.myFaction, uid);
-        const targetSpreadX = spawnX + (Math.random() - 0.5) * 50;
-        const targetSpreadY = spawnY + (spawnY < 900 ? 60 : -60) + Math.random() * 30;
-        newUnit.moveTo(targetSpreadX, targetSpreadY);
+
+        // Despacha automaticamente para o Rally Point se configurado
+        if (producerBldg && producerBldg.rallyPoint) {
+          const rSpreadX = producerBldg.rallyPoint.x + (Math.random() - 0.5) * 35;
+          const rSpreadY = producerBldg.rallyPoint.y + (Math.random() - 0.5) * 35;
+          newUnit.moveTo(rSpreadX, rSpreadY, this.engine);
+        } else {
+          const targetSpreadX = spawnX + (Math.random() - 0.5) * 50;
+          const targetSpreadY = spawnY + (spawnY < 900 ? 60 : -60) + Math.random() * 30;
+          newUnit.moveTo(targetSpreadX, targetSpreadY, this.engine);
+        }
         this.engine.units.push(newUnit);
 
         if (this.engine.multiplayer) {
@@ -521,6 +536,7 @@ export class SidebarUI {
           const uid = `${this.engine.myFaction}_b_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
           const newB = new Building(this.ghostX, this.ghostY, this.activePlacement.id, this.engine.myFaction, true, uid);
           this.engine.buildings.push(newB);
+          if (this.engine.map) this.engine.map.registerBuilding(newB);
 
           for (let i = 0; i < 15; i++) {
             this.engine.particles.createTreadDust(
