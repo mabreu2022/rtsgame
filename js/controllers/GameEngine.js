@@ -522,6 +522,83 @@ export class Engine {
         document.getElementById('btnZoomOut').onclick = () => { this.camera.zoom = Math.max(0.55, this.camera.zoom * 0.8); this.clampCamera(); };
         document.getElementById('btnCenterBase').onclick = () => this.centerOnBase();
 
+                // Controles do Jukebox de Trilha Sonora
+        const btnJukePlay = document.getElementById('btnMusicPlay');
+        const btnJukeNext = document.getElementById('btnMusicNext');
+        const btnJukePrev = document.getElementById('btnMusicPrev');
+        const volSlider = document.getElementById('musicVolumeSlider');
+
+        if (btnJukePlay) {
+          btnJukePlay.onclick = () => {
+            this.music.toggle();
+            this.music.updateHUDTrackDisplay();
+          };
+        }
+        if (btnJukeNext) btnJukeNext.onclick = () => this.music.nextTrack();
+        if (btnJukePrev) btnJukePrev.onclick = () => this.music.prevTrack();
+        if (volSlider) {
+          volSlider.oninput = (e) => {
+            this.music.setVolume(e.target.value / 100);
+          };
+        }
+
+        // Auto-iniciar música e áudio no primeiro clique do usuário no jogo
+        const autoStartMusic = () => {
+          if (!this.musicStarted) {
+            this.musicStarted = true;
+            this.music.start();
+          }
+          window.removeEventListener('click', autoStartMusic);
+          window.removeEventListener('keydown', autoStartMusic);
+        };
+        window.addEventListener('click', autoStartMusic);
+        window.addEventListener('keydown', autoStartMusic);
+
+        // Interatividade Completa no Radar Tático (Minimap)
+        const radar = document.getElementById('radarCanvas');
+        if (radar) {
+          // Clique Esquerdo no Radar: Centraliza a câmera no local clicado
+          radar.addEventListener('click', (e) => {
+            const rect = radar.getBoundingClientRect();
+            const rx = (e.clientX - rect.left) / radar.width;
+            const ry = (e.clientY - rect.top) / radar.height;
+            const targetWorldX = rx * this.map.width;
+            const targetWorldY = ry * this.map.height;
+
+            this.camera.x = targetWorldX - (this.canvas.width / this.camera.zoom) / 2;
+            this.camera.y = targetWorldY - (this.canvas.height / this.camera.zoom) / 2;
+            this.clampCamera();
+            this.sounds.playSelect();
+          });
+
+          // Clique Direito no Radar: Move as unidades selecionadas para o ponto do mapa!
+          radar.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const rect = radar.getBoundingClientRect();
+            const rx = (e.clientX - rect.left) / radar.width;
+            const ry = (e.clientY - rect.top) / radar.height;
+            const targetWorldX = rx * this.map.width;
+            const targetWorldY = ry * this.map.height;
+
+            const selectedUnits = this.units.filter(u => u.selected && this.isFriendly(u.faction));
+            if (selectedUnits.length > 0) {
+              this.sounds.playOrder();
+              selectedUnits.forEach((u, idx) => {
+                const spread = (idx - (selectedUnits.length - 1) / 2) * 25;
+                u.moveTo(targetWorldX + spread, targetWorldY);
+              });
+              if (this.multiplayer) {
+                this.multiplayer.send({
+                  type: 'CMD_MOVE',
+                  uids: selectedUnits.map(u => u.uid),
+                  targetX: targetWorldX,
+                  targetY: targetWorldY
+                });
+              }
+            }
+          });
+        }
+
         // Botão de Áudio
         const audioBtn = document.getElementById('btnAudioToggle');
         if (audioBtn) {

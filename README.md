@@ -27,10 +27,19 @@ Um jogo clássico de Estratégia em Tempo Real (RTS) militar no estilo **Command
 - **Templo de NOD & Super-Arma:** Plataforma de lançamento do **Míssil Nuclear balístico** com sirene militar wailing, tremor de tela e **cogumelo atômico procedural** em expansão térmica.
 - **Canhão de Íons GDI:** Super-arma orbital celestial com feixe de plasma devastador.
 
-### 🎵 Trilha Sonora Industrial Dinâmica & Áudio EVA
-- **Trilha Sonora Industrial:** Sintetizada em tempo real via Web Audio API a 126 BPM no estilo *Hell March* (Frank Klepacki), com bateria industrial pesada, contratempos, linha de baixo em Ré menor e power chords.
+### 🎵 Jukebox Militar de 4 Trilhas Sonoras Originais & Áudio Pro
+- **Catálogo de 4 Trilhas Estilo C&C (Frank Klepacki):**
+  - **1. HELL MARCH // TIBERIAN METAL (126 BPM):** Bateria industrial pesada, contratempos metálicos, linha de baixo distorcida em Ré menor e power chords.
+  - **2. ACT ON INSTINCT // TACTICAL GROOVE (116 BPM):** Groove militar funk-rock com slap bass em Lá menor, hi-hats com swing e sintetizadores arpejados.
+  - **3. LONE TROOPER // DARK AMBIENT (94 BPM):** Atmosfera cinematográfica tensa com sub-graves profundos, rimshots suaves e pads ressonantes envolventes.
+  - **4. MECHANICAL RUSH // HIGH VELOCITY (138 BPM):** Ritmo frenético de combate militar, bumbo duplo em semicolcheias e arpejos agressivos para rush tático.
+- **HUD Jukebox & Equalizador Visual:** Widget dedicado no topo da tela com botões ⏮ / ▶ / ⏭, mostrador de faixa em tempo real, **equalizador VU Meter animado com 4 barras pulsantes** e controle deslizante de volume (0 a 100%).
 - **Voz Tática EVA:** Avisos vocalizados militarmente via Web Speech API (*"Battle control online"*, *"Unit ready"*, *"Mission accomplished"*).
 - **Efeitos Sonoros Procedurais:** Disparos, foguetes, canhões, explosões com sub-graves, alarmes e chimes eletrônicos.
+
+### 🗺️ Radar Tático / Minimap Totalmente Interativo
+- **Navegação com Botão Esquerdo:** Clique em qualquer ponto do radar tático para centralizar a câmera imediatamente na área.
+- **Movimentação com Botão Direito (Click-to-Move):** Selecione qualquer grupo de tropas ou veículos e clique com o botão direito diretamente no radar para despachá-los ao setor desejado em formação tática, sem precisar mover a câmera.
 
 ### 🌐 Multiplayer até 4 Jogadores & Bots de IA
 - **Topologia Star WebRTC P2P:** Partidas de até 4 jogadores divididos em 4 quadrantes (GDI Azul Noroeste, NOD Vermelho Nordeste, GDI Ouro Sudoeste, NOD Roxo Sudeste).
@@ -98,11 +107,15 @@ jogo/
 | :--- | :--- |
 | **Botão Esquerdo** | Seleciona unidades/prédios ou abre caixa de arrasto |
 | **Botão Direito** | Move unidades, ordena ataque, minera ou embarca em transportes |
+| **Clique Esquerdo no Radar** | **Centraliza a câmera imediatamente** no local clicado no minimap |
+| **Clique Direito no Radar** | **Move as tropas selecionadas diretamente pelo minimap** (Click-to-Move) |
 | **Scroll do Mouse** | Zoom in / Zoom out contínuo na câmera |
 | **W, A, S, D** | Navegação panorâmica da câmera pelo mapa |
 | **Ctrl + 1..9** | Atribui as unidades selecionadas ao **Grupo N** |
 | **1..9** | Seleciona instantaneamente o Grupo N |
 | **1..9 (Duplo Toque)** | **Centraliza a câmera imediatamente nas tropas do Grupo N** |
+| **Jukebox ⏮ / ▶ / ⏭** | Alterna entre as 4 faixas originais ou pausa a música |
+| **Volume Slider** | Ajusta o volume linear da trilha sonora (0% a 100%) |
 | **Enter** | Abre o rádio tático militar do Chat |
 | **Esc** | Cancela posicionamento de prédios ou limpa seleção |
 

@@ -250,6 +250,7 @@
     
     <nav class="nav-bar">
       <a href="#controles">⌨️ Controles & Grupos</a>
+      <a href="#trilha">🎵 Jukebox & Áudio</a>
       <a href="#infantaria">🪖 Infantaria & Categorias</a>
       <a href="#veiculos">🚜 Veículos & Helicóptero</a>
       <a href="#estruturas">🏭 Estruturas & Defesas</a>
@@ -269,7 +270,8 @@
           <table>
             <tr><td><span class="key">Botão Esquerdo</span></td><td>Seleciona uma unidade/prédio ou abre caixa de arrasto para selecionar várias unidades.</td></tr>
             <tr><td><span class="key">Botão Direito</span></td><td>Move unidades, ataca alvos inimigos, envia colhedora para o Tiberium ou embarca em transportes.</td></tr>
-            <tr><td><span class="key">Botão Direito</span></td><td>Cancela posicionamento de prédios ou desativa ferramentas de reparo/venda.</td></tr>
+            <tr><td><span class="key">Clique Esq. no Radar</span></td><td><strong>Navegação Instantânea:</strong> Centraliza a câmera no local clicado do minimap.</td></tr>
+            <tr><td><span class="key">Clique Dir. no Radar</span></td><td><strong>Click-to-Move:</strong> Move as tropas selecionadas diretamente para o quadrante clicado do mapa!</td></tr>
             <tr><td><span class="key">Scroll do Mouse</span></td><td>Zoom in / Zoom out contínuo no campo de batalha.</td></tr>
             <tr><td><span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span></td><td>Navegação de câmera pelo mapa tático.</td></tr>
             <tr><td><span class="key">Enter</span></td><td>Abre o rádio de comunicação do Chat Tático militar.</td></tr>
@@ -289,7 +291,58 @@
       </div>
     </section>
 
-    <!-- 2. INFANTARIA E CATEGORIAS -->
+    <!-- 2. JUKEBOX MILITAR & SISTEMA DE ÁUDIO -->
+    <section class="section" id="trilha">
+      <h2 class="section-title"><span>🎵</span> RÁDIO TÁTICO: JUKEBOX MILITAR COM 4 TRILHAS ORIGINAIS</h2>
+      <p style="margin-bottom: 20px;">Todas as faixas sonoras são sintetizadas em tempo real no navegador através da <strong>Web Audio API</strong> nativa, utilizando osciladores analógicos virtuais, filtros passa-baixas dinâmicos e baterias industriais inspiradas no estilo lendário de Frank Klepacki (C&C Tiberian Dawn / Red Alert):</p>
+
+      <div class="grid-2">
+        <div class="card highlight">
+          <div class="card-title">
+            <span>1. HELL MARCH // TIBERIAN METAL</span>
+            <span class="badge badge-red">126 BPM // INDUSTRIAL</span>
+          </div>
+          <p>A marcha militar definitiva. Bumbo duplo com ataque agressivo, contratempos metálicos em semicolcheias, linha de baixo distorcida em Ré menor (36.7 Hz) e stabs pesados de power chords.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>2. ACT ON INSTINCT // TACTICAL GROOVE</span>
+            <span class="badge badge-cyan">116 BPM // MILITAR FUNK</span>
+          </div>
+          <p>Groove tático ritmado com bumbos sincopados, estalo seco de caixa com corte de frequências, slap bass pulsante em Lá menor e sintetizadores analógicos com pan estéreo dinâmico.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>3. LONE TROOPER // DARK AMBIENT</span>
+            <span class="badge badge-gold">94 BPM // CINEMÁTICO</span>
+          </div>
+          <p>Tensão cinematográfica de espionagem. Sub-graves ressonantes profundos, rimshots suaves com reverberação espaçada e camadas de pads sintetizados em harmonia menor envolvente.</p>
+        </div>
+
+        <div class="card highlight">
+          <div class="card-title">
+            <span>4. MECHANICAL RUSH // HIGH VELOCITY</span>
+            <span class="badge badge-green">138 BPM // ACID WARFARE</span>
+          </div>
+          <p>Frenesi mecânico de alta rotação para momentos de cerco intenso. Pedal duplo ininterrupto, caixa penetrante, baixo ácido e arpejos galopantes em alta velocidade.</p>
+        </div>
+      </div>
+
+      <div class="card highlight" style="margin-top: 20px;">
+        <div class="card-title">CONTROLES DO JUKEBOX & EQUALIZADOR VU METER NO HUD</div>
+        <p>No topo da tela de jogo encontra-se o módulo do <strong>Rádio Tático</strong> com:</p>
+        <ul style="margin: 10px 0 10px 20px;">
+          <li><strong>⏮ e ⏭:</strong> Salta instantaneamente entre as 4 faixas da trilha sonora militar sem recarregar áudio.</li>
+          <li><strong>▶ / ⏸:</strong> Inicia ou pausa a reprodução da música a qualquer momento.</li>
+          <li><strong>Equalizador VU Meter:</strong> 4 barras de volume animadas dinamicamente com pulsações visuais nos tons ciano, azul e verde militar.</li>
+          <li><strong>Slider de Volume (0% a 100%):</strong> Ajuste preciso do ganho mestre da trilha sonora com atenuação suave sem distorção.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3. INFANTARIA E CATEGORIAS -->
     <section class="section" id="infantaria">
       <h2 class="section-title"><span>🪖</span> INFANTARIA MILITAR E CATEGORIAS DE COMBATE</h2>
       <p style="margin-bottom: 20px;">As unidades a pé possuem animação anatômica de passadas alternadas, sombras orgânicas elípticas e esquemas visuais com armamento dedicado para cada especialidade:</p>

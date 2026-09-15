@@ -1,3 +1,80 @@
+/* WIDGET JUKEBOX MILITAR DE TRILHA SONORA */
+    .hud-jukebox {
+      border-left-color: var(--hud-cyan) !important;
+      min-width: 250px;
+      pointer-events: auto !important;
+      padding: 6px 12px !important;
+    }
+    .jukebox-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+    .vu-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 10px;
+    }
+    .vu-bar {
+      width: 3px;
+      background: #334455;
+      border-radius: 1px;
+      height: 3px;
+      transition: height 0.1s ease;
+    }
+    .vu-bars.active .b1 { animation: vuPulse 0.35s infinite alternate ease-in-out; }
+    .vu-bars.active .b2 { animation: vuPulse 0.42s infinite alternate ease-in-out 0.1s; }
+    .vu-bars.active .b3 { animation: vuPulse 0.28s infinite alternate ease-in-out 0.05s; }
+    .vu-bars.active .b4 { animation: vuPulse 0.38s infinite alternate ease-in-out 0.15s; }
+
+    @keyframes vuPulse {
+      0% { height: 2px; background: #0088cc; }
+      50% { height: 7px; background: var(--hud-cyan); }
+      100% { height: 10px; background: #00ff66; }
+    }
+
+    .jukebox-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .juke-btn {
+      background: #151e28;
+      border: 1px solid #2d4156;
+      color: #00e5ff;
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .juke-btn:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: #00e5ff;
+      color: #fff;
+    }
+    .juke-btn.play-btn {
+      color: #00ff66;
+      font-weight: bold;
+    }
+    .juke-track-name {
+      font-size: 11px !important;
+      color: #fff !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+      letter-spacing: 0.5px;
+    }
+    .juke-volume {
+      width: 50px;
+      height: 4px;
+      accent-color: var(--hud-cyan);
+      cursor: pointer;
+    }
+
 /* OVERLAYS MILITARES NO CANTO DO VIEWPORT */
     #top-hud {
       position: absolute;
