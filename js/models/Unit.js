@@ -276,9 +276,9 @@ export class Unit {
             }
           } else {
             const autoTarget = engine.units.find(u =>
-              u.faction !== this.faction && u.hp > 0 && Math.hypot(u.x - this.x, u.y - this.y) <= this.range * 1.15
+              engine.areEnemies(u.faction, this.faction) && u.hp > 0 && Math.hypot(u.x - this.x, u.y - this.y) <= this.range * 1.15
             ) || engine.buildings.find(b =>
-              b.faction !== this.faction && b.hp > 0 && Math.hypot(b.x - this.x, b.y - this.y) <= this.range * 1.15
+              engine.areEnemies(b.faction, this.faction) && b.hp > 0 && Math.hypot(b.x - this.x, b.y - this.y) <= this.range * 1.15
             );
             if (autoTarget) this.attack(autoTarget);
           }

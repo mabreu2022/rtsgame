@@ -58,6 +58,114 @@
 
     
     
+    
+    /* MODAL DE DIPLOMACIA E ALIANÇAS MILITARES */
+    .diplo-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .diplo-card {
+      background: #0d131a;
+      border: 1px solid #1e2c3c;
+      border-left-width: 4px;
+      border-radius: 4px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+    .diplo-card.allied {
+      background: rgba(0, 255, 102, 0.04);
+      border-color: rgba(0, 255, 102, 0.35);
+    }
+    .diplo-card.enemy {
+      background: rgba(255, 51, 68, 0.04);
+      border-color: rgba(255, 51, 68, 0.35);
+    }
+    .diplo-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .diplo-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-tech);
+      font-size: 12px;
+    }
+    .diplo-status-badge {
+      font-family: var(--font-tech);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+    .status-allied {
+      background: rgba(0, 255, 102, 0.15);
+      color: #00ff66;
+      border: 1px solid #00ff66;
+    }
+    .status-enemy {
+      background: rgba(255, 51, 68, 0.15);
+      color: #ff3344;
+      border: 1px solid #ff3344;
+    }
+    .diplo-card-body {
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: #8fa0b2;
+    }
+    .diplo-info-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .diplo-btn {
+      width: 100%;
+      padding: 8px;
+      font-family: var(--font-tech);
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .diplo-btn.ally-btn {
+      background: rgba(0, 255, 102, 0.2);
+      border: 1px solid #00ff66;
+      color: #00ff66;
+    }
+    .diplo-btn.ally-btn:hover {
+      background: #00ff66;
+      color: #050b10;
+    }
+    .diplo-btn.break-btn {
+      background: rgba(255, 51, 68, 0.2);
+      border: 1px solid #ff3344;
+      color: #ff3344;
+    }
+    .diplo-btn.break-btn:hover {
+      background: #ff3344;
+      color: #fff;
+    }
+    .slot-team-box {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .slot-team-label {
+      font-size: 10px;
+      color: #728599;
+      font-family: var(--font-tech);
+      display: block;
+      margin-bottom: 2px;
+    }
+
     /* PAINEL TÁTICO DE VÍDEO CONFERÊNCIA WEBRTC */
     .comms-panel {
       position: absolute;
@@ -89,6 +197,22 @@
       padding: 6px 12px;
       background: rgba(18, 25, 38, 0.98);
       border-bottom: 1px solid #233446;
+      cursor: grab;
+      user-select: none;
+    }
+    .comms-header:active {
+      cursor: grabbing;
+    }
+    .drag-handle {
+      cursor: grab;
+      font-size: 13px;
+      opacity: 0.6;
+      margin-right: 2px;
+      letter-spacing: -2px;
+    }
+    .drag-handle:hover {
+      opacity: 1;
+      color: #00e5ff;
     }
     .comms-title {
       display: flex;
@@ -1845,7 +1969,8 @@
         <!-- PAINEL DE VÍDEOCONFERÊNCIA MILITAR WEBRTC (COMMS DE COMANDANTES) -->
     <div id="tactical-comms-panel" class="comms-panel">
       <div class="comms-header">
-        <div class="comms-title">
+        <div class="comms-title" title="Clique e arraste para mover a janela">
+          <span class="drag-handle">⠿</span>
           <span class="rec-dot"></span>
           <span>COMMS TÁTICO // TRANSMISSÃO P2P</span>
         </div>
@@ -1975,6 +2100,10 @@
         <span class="label">Status Base</span>
         <span class="val" id="hud-base-status" style="color: var(--hud-green);">ENERGIZADA (100%)</span>
       </div>
+            <div class="hud-badge" id="btnOpenDiplomacy" style="border-left-color: #f1c40f; cursor: pointer;" title="Gerenciar Alianças e Relações Diplomáticas">
+        <span class="label">Relações Militares</span>
+        <span class="val" style="color: #f1c40f;">🤝 DIPLOMACIA</span>
+      </div>
       <div class="hud-badge hud-btn-multiplayer" id="btnOpenMultiplayer" style="border-left-color: #e74c3c;">
         <span class="label">Rede & Partidas</span>
         <span class="val" id="hud-mp-status" style="color: #ffaa00;">🌐 SALA / 4 PLAYERS</span>
@@ -2059,6 +2188,29 @@
       </div>
     </div>
 
+        <!-- MODAL DE DIPLOMACIA & ALIANÇAS MILITARES EM TEMPO REAL -->
+    <div id="diplomacy-modal" class="modal-backdrop">
+      <div class="modal-box" style="max-width: 680px;">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🤝</span>
+            <span>PAINEL DE DIPLOMACIA // PACTOS & ALIANÇAS MILITARES</span>
+          </div>
+          <button class="modal-close-btn" id="btnCloseDiplomacy" title="Fechar">✖</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mp-intro">
+            Gerencie relações militares, pactos de não-agressão e alianças de combate com comandantes humanos e robôs de IA em tempo real. Facções aliadas <strong>compartilham linha de visão</strong> e <strong>não sofrem dano de fogo amigo</strong>.
+          </div>
+
+          <div class="diplo-cards-grid" id="diploCardsGrid">
+            <!-- Gerado dinamicamente para os Slots 1 a 4 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL DE MULTIPLAYER ATÉ 4 JOGADORES, BOTS IA & OBJETIVOS -->
     <div id="multiplayer-modal" class="modal-backdrop">
       <div class="modal-box" style="max-width: 840px;">
@@ -2100,6 +2252,15 @@
               <div class="slot-location">📍 Base Noroeste (Topo Esq.)</div>
               <div class="slot-controller-box">
                 <div class="slot-status-txt" id="slot1StatusTxt">👑 VOCÊ (HOST)</div>
+                <div class="slot-team-box">
+                  <span class="slot-team-label">TIME / ALIANÇA:</span>
+                  <select id="selectTeamSlot1" class="slot-select">
+                    <option value="none">⚔️ Livre (FFA - Todos vs Todos)</option>
+                    <option value="alpha" selected>🛡️ Time Alfa (GDI)</option>
+                    <option value="bravo">🦂 Time Bravo (NOD)</option>
+                    <option value="charlie">⭐ Time Charlie</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -4290,7 +4451,7 @@
         if (this.type === 'turret') {
           this.cooldown = Math.max(0, this.cooldown - dt);
           const target = engine.units.find(u =>
-            u.faction !== this.faction && u.hp > 0 && Math.hypot(u.x - this.x, u.y - this.y) <= this.range
+            engine.areEnemies(u.faction, this.faction) && u.hp > 0 && Math.hypot(u.x - this.x, u.y - this.y) <= this.range
           );
 
           if (target) {
@@ -4851,7 +5012,7 @@
             const autoTarget = engine.units.find(u =>
               u.faction !== this.faction && u.hp > 0 && Math.hypot(u.x - this.x, u.y - this.y) <= this.range * 1.15
             ) || engine.buildings.find(b =>
-              b.faction !== this.faction && b.hp > 0 && Math.hypot(b.x - this.x, b.y - this.y) <= this.range * 1.15
+              engine.areEnemies(b.faction, this.faction) && b.hp > 0 && Math.hypot(b.x - this.x, b.y - this.y) <= this.range * 1.15
             );
             if (autoTarget) this.attack(autoTarget);
           }
@@ -6248,13 +6409,186 @@
         }
       }
 
-      isFriendly(faction) {
-        if (faction === this.myFaction) return true;
-        if (this.myFaction === 'slot1' && faction === 'player') return true;
-        if (this.myFaction === 'slot2' && faction === 'enemy') return true;
-        if (this.myFaction === 'player' && faction === 'slot1') return true;
-        if (this.myFaction === 'enemy' && faction === 'slot2') return true;
+normalizeFaction(f) {
+        if (f === 'player') return 'slot1';
+        if (f === 'enemy') return 'slot2';
+        return f;
+      }
+
+      areAllied(f1, f2) {
+        if (!f1 || !f2) return false;
+        f1 = this.normalizeFaction(f1);
+        f2 = this.normalizeFaction(f2);
+        if (f1 === f2) return true;
+
+        // 1. Checa times configurados na sala/lobby
+        if (this.teams && this.teams[f1] && this.teams[f1] !== 'none' && this.teams[f1] === this.teams[f2]) {
+          return true;
+        }
+
+        // 2. Checa pactos diplomáticos bilaterais ativos em tempo real
+        if (this.diplomacyPacts) {
+          const key = f1 < f2 ? `${f1}:${f2}` : `${f2}:${f1}`;
+          if (this.diplomacyPacts.has(key)) return true;
+        }
+
         return false;
+      }
+
+      areEnemies(f1, f2) {
+        return !this.areAllied(f1, f2);
+      }
+
+      isFriendly(faction) {
+        return this.areAllied(this.myFaction, faction);
+      }
+
+      proposeAlliance(fromSlot, toSlot, broadcast = true) {
+        fromSlot = this.normalizeFaction(fromSlot);
+        toSlot = this.normalizeFaction(toSlot);
+
+        // Se o alvo for um bot de IA, avalia a aliança
+        const toCfg = this.slotConfigs[toSlot] || 'human';
+        const isBot = toCfg.startsWith('ai_');
+
+        if (isBot) {
+          this.setAlliance(fromSlot, toSlot, true, broadcast);
+          this.eva.speak('Alliance formed.');
+          this.showEvaMessage(`PACTO DIPLOMÁTICO: ALIANÇA FIRMADA COM ${toSlot.toUpperCase()}!`);
+          this.sounds.playEvaChime('ready');
+        } else if (this.multiplayer && this.multiplayer.connected) {
+          this.showEvaMessage(`PROPOSTA DE ALIANÇA TRANSMITIDA A ${toSlot.toUpperCase()}...`);
+          this.multiplayer.send({
+            type: 'DIPLO_PROPOSAL',
+            fromSlot: fromSlot,
+            toSlot: toSlot
+          });
+        }
+      }
+
+      breakAlliance(fromSlot, toSlot, broadcast = true) {
+        fromSlot = this.normalizeFaction(fromSlot);
+        toSlot = this.normalizeFaction(toSlot);
+
+        this.setAlliance(fromSlot, toSlot, false, broadcast);
+        this.eva.speak('Alliance terminated! Enemy detected.');
+        this.showEvaMessage(`ALERTA DIPLOMÁTICO: ALIANÇA QUEBRADA COM ${toSlot.toUpperCase()}!`);
+        this.sounds.playEvaChime('alert');
+
+        // O bot que sofreu traição prioriza retaliação imediata!
+        this.recordAttack(toSlot, fromSlot);
+
+        if (broadcast && this.multiplayer && this.multiplayer.connected) {
+          this.multiplayer.send({
+            type: 'DIPLO_BREAK',
+            fromSlot: fromSlot,
+            toSlot: toSlot
+          });
+        }
+      }
+
+      setAlliance(s1, s2, isAllied, broadcast = false) {
+        s1 = this.normalizeFaction(s1);
+        s2 = this.normalizeFaction(s2);
+        if (!this.diplomacyPacts) this.diplomacyPacts = new Set();
+        const key = s1 < s2 ? `${s1}:${s2}` : `${s2}:${s1}`;
+
+        if (isAllied) {
+          this.diplomacyPacts.add(key);
+        } else {
+          this.diplomacyPacts.delete(key);
+        }
+
+        this.renderDiplomacyModal();
+
+        if (broadcast && this.multiplayer && this.multiplayer.connected) {
+          this.multiplayer.send({
+            type: 'DIPLO_SYNC',
+            s1: s1,
+            s2: s2,
+            isAllied: isAllied
+          });
+        }
+      }
+
+      recordAttack(victimSlot, attackerSlot) {
+        if (!victimSlot || !attackerSlot) return;
+        victimSlot = this.normalizeFaction(victimSlot);
+        attackerSlot = this.normalizeFaction(attackerSlot);
+        if (this.areAllied(victimSlot, attackerSlot)) return;
+
+        if (!this.aiRetaliationTarget) this.aiRetaliationTarget = {};
+        this.aiRetaliationTarget[victimSlot] = attackerSlot;
+      }
+
+      renderDiplomacyModal() {
+        const container = document.getElementById('diploCardsGrid');
+        if (!container) return;
+
+        const factions = [
+          { slot: 'slot1', name: 'FORÇAS GDI (AZUL)', icon: '🦅', color: '#00e5ff' },
+          { slot: 'slot2', name: 'IRMANDADE NOD (VERM.)', icon: '🦂', color: '#ff3344' },
+          { slot: 'slot3', name: 'GDI OURO (DOURADO)', icon: '⭐', color: '#f1c40f' },
+          { slot: 'slot4', name: 'NOD ROXO (VIOLETA)', icon: '🔮', color: '#cc44ff' }
+        ];
+
+        container.innerHTML = '';
+
+        factions.forEach(f => {
+          if (f.slot === this.myFaction) return;
+
+          const isAllied = this.areAllied(this.myFaction, f.slot);
+          const cfg = this.slotConfigs[f.slot] || 'human';
+          const isBot = cfg.startsWith('ai_');
+          const isClosed = cfg === 'closed';
+
+          if (isClosed) return;
+
+          const controllerName = isBot ? `🤖 Bot IA (${cfg.replace('ai_', '').toUpperCase()})` : '👤 Comandante Humano';
+
+          const card = document.createElement('div');
+          card.className = `diplo-card ${isAllied ? 'allied' : 'enemy'}`;
+          card.style.borderLeftColor = f.color;
+
+          card.innerHTML = `
+            <div class="diplo-card-header">
+              <div class="diplo-card-title">
+                <span style="font-size: 18px;">${f.icon}</span>
+                <span style="color: ${f.color}; font-weight: bold;">${f.name}</span>
+              </div>
+              <span class="diplo-status-badge ${isAllied ? 'status-allied' : 'status-enemy'}">
+                ${isAllied ? '🟢 ALIANÇA ATIVA' : '🔴 EM GUERRA'}
+              </span>
+            </div>
+            <div class="diplo-card-body">
+              <div class="diplo-info-row">
+                <span>Controle:</span>
+                <span style="color: #fff;">${controllerName}</span>
+              </div>
+              <div class="diplo-info-row">
+                <span>Visão Compartilhada:</span>
+                <span>${isAllied ? '✅ ATIVADA' : '❌ DESATIVADA'}</span>
+              </div>
+              <div class="diplo-info-row">
+                <span>Fogo Amigo:</span>
+                <span>${isAllied ? '🛡️ PROTEGIDO' : '⚔️ ALVO HOSTIL'}</span>
+              </div>
+            </div>
+            <div class="diplo-card-actions" style="margin-top: 6px;">
+              ${isAllied ? `
+                <button class="diplo-btn break-btn" onclick="window.game.breakAlliance('${this.myFaction}', '${f.slot}')">
+                  ⚔️ QUEBRAR ALIANÇA / DECLARAR GUERRA
+                </button>
+              ` : `
+                <button class="diplo-btn ally-btn" onclick="window.game.proposeAlliance('${this.myFaction}', '${f.slot}')">
+                  🤝 FIRMAR PACTO DE ALIANÇA
+                </button>
+              `}
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
       }
 
       resize() {
@@ -6682,7 +7016,25 @@
         document.getElementById('btnZoomOut').onclick = () => { this.camera.zoom = Math.max(0.55, this.camera.zoom * 0.8); this.clampCamera(); };
         document.getElementById('btnCenterBase').onclick = () => this.centerOnBase();
 
-                        // Alternador Rápido de Bioma de Mapa no HUD
+                                // Botão Abrir / Fechar Modal de Diplomacia
+        const btnOpenDiplo = document.getElementById('btnOpenDiplomacy');
+        const modalDiplo = document.getElementById('diplomacy-modal');
+        const btnCloseDiplo = document.getElementById('btnCloseDiplomacy');
+
+        if (btnOpenDiplo && modalDiplo) {
+          btnOpenDiplo.onclick = () => {
+            this.renderDiplomacyModal();
+            modalDiplo.style.display = 'flex';
+            this.sounds.playSelect();
+          };
+        }
+        if (btnCloseDiplo && modalDiplo) {
+          btnCloseDiplo.onclick = () => {
+            modalDiplo.style.display = 'none';
+          };
+        }
+
+        // Alternador Rápido de Bioma de Mapa no HUD
         const btnMapSelect = document.getElementById('btnQuickMapSelect');
         if (btnMapSelect) {
           btnMapSelect.onclick = () => {
@@ -6702,7 +7054,64 @@
         const btnToggleMic = document.getElementById('btnToggleMic');
 
         if (btnCommsToggle && commsPanel) {
-          btnCommsToggle.onclick = () => {
+          
+        // Sistema de Arrastar e Mover Janela de Videoconferência (Drag & Drop)
+        const commsHeader = commsPanel ? commsPanel.querySelector('.comms-header') : null;
+        if (commsPanel && commsHeader) {
+          let isDraggingComms = false;
+          let dragStartX = 0;
+          let dragStartY = 0;
+          let initialLeft = 0;
+          let initialTop = 0;
+
+          commsHeader.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.comms-actions') || e.target.tagName === 'BUTTON') return;
+
+            isDraggingComms = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            const rect = commsPanel.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            commsPanel.style.bottom = 'auto';
+            commsPanel.style.right = 'auto';
+            commsPanel.style.left = initialLeft + 'px';
+            commsPanel.style.top = initialTop + 'px';
+
+            document.body.style.userSelect = 'none';
+            commsHeader.style.cursor = 'grabbing';
+          });
+
+          window.addEventListener('mousemove', (e) => {
+            if (!isDraggingComms) return;
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+
+            let newLeft = initialLeft + deltaX;
+            let newTop = initialTop + deltaY;
+
+            const maxLeft = Math.max(0, window.innerWidth - commsPanel.offsetWidth);
+            const maxTop = Math.max(0, window.innerHeight - commsPanel.offsetHeight);
+
+            newLeft = Math.max(0, Math.min(maxLeft, newLeft));
+            newTop = Math.max(0, Math.min(maxTop, newTop));
+
+            commsPanel.style.left = newLeft + 'px';
+            commsPanel.style.top = newTop + 'px';
+          });
+
+          window.addEventListener('mouseup', () => {
+            if (isDraggingComms) {
+              isDraggingComms = false;
+              document.body.style.userSelect = '';
+              commsHeader.style.cursor = 'grab';
+            }
+          });
+        }
+
+        btnCommsToggle.onclick = () => {
             commsPanel.classList.toggle('show');
             this.sounds.playSelect();
           };
@@ -7230,7 +7639,6 @@
       }
 
       updateAI(dt) {
-        // Se formos o Host ou em Modo Solo, rodamos a IA para slots configurados com robôs
         const isHostOrSolo = (!this.multiplayer || !this.multiplayer.connected || this.multiplayer.isHost);
         if (!isHostOrSolo) return;
 
@@ -7238,11 +7646,10 @@
           const cfg = this.slotConfigs[slot];
           if (!cfg || !cfg.startsWith('ai_')) return;
 
-          // Intervalo de produção baseado na dificuldade
-          let buildInterval = 24;
+          let buildInterval = 22;
           let squadThreshold = 4;
-          if (cfg === 'ai_easy') { buildInterval = 38; squadThreshold = 3; }
-          if (cfg === 'ai_brutal') { buildInterval = 13; squadThreshold = 6; }
+          if (cfg === 'ai_easy') { buildInterval = 36; squadThreshold = 3; }
+          if (cfg === 'ai_brutal') { buildInterval = 12; squadThreshold = 6; }
 
           this.aiTimers[slot] = (this.aiTimers[slot] || 0) + dt;
           if (this.aiTimers[slot] >= buildInterval) {
@@ -7268,16 +7675,47 @@
               }
             }
 
-            // Unidades de ataque formam pelotão e marcham
-            const squad = this.units.filter(u => u.faction === slot && u.type !== 'harvester');
-            const oppTarget = this.buildings.find(b => b.faction !== slot && b.hp > 0) || this.units.find(u => u.faction !== slot && u.hp > 0);
+            // Unidades de ataque formam pelotão e marcham contra qualquer inimigo não-aliado
+            const squad = this.units.filter(u => u.faction === slot && u.type !== 'harvester' && u.hp > 0);
+            if (squad.length >= squadThreshold) {
+              // Encontra todos os inimigos (outros bots ou o jogador) que NÃO são aliados deste slot
+              const enemyBuildings = this.buildings.filter(b => b.hp > 0 && this.areEnemies(b.faction, slot));
+              const enemyUnits = this.units.filter(u => u.hp > 0 && this.areEnemies(u.faction, slot) && u.type !== 'harvester');
 
-            if (oppTarget && squad.length >= squadThreshold) {
-              squad.forEach(u => u.attack(oppTarget));
-              if (oppTarget.faction === this.myFaction) {
-                this.eva.speak('Our base is under attack.', 14000);
-                this.showEvaMessage('ALERTA: BASE SOB ATAQUE INIMIGO');
-                this.sounds.playEvaChime('alert');
+              let oppTarget = null;
+
+              // 1. Checa se o bot tem alvo de retaliação recente
+              const retaliateSlot = this.aiRetaliationTarget && this.aiRetaliationTarget[slot];
+              if (retaliateSlot && this.areEnemies(retaliateSlot, slot)) {
+                oppTarget = enemyBuildings.find(b => b.faction === retaliateSlot) ||
+                            enemyUnits.find(u => u.faction === retaliateSlot);
+              }
+
+              // 2. Se não houver retaliação, prioriza alvos por proximidade à base do bot com variação tática
+              if (!oppTarget && (enemyBuildings.length > 0 || enemyUnits.length > 0)) {
+                const basePos = fac ? { x: fac.x, y: fac.y } : (squad[0] ? { x: squad[0].x, y: squad[0].y } : { x: 1200, y: 900 });
+                let bestScore = Infinity;
+
+                [...enemyBuildings, ...enemyUnits].forEach(ent => {
+                  const dist = Math.hypot(ent.x - basePos.x, ent.y - basePos.y);
+                  const priorityBonus = ent.type === 'hq' ? -150 : (ent.type === 'factory' ? -80 : 0);
+                  const score = dist + priorityBonus + (Math.random() * 250);
+                  if (score < bestScore) {
+                    bestScore = score;
+                    oppTarget = ent;
+                  }
+                });
+              }
+
+              if (oppTarget) {
+                squad.forEach(u => u.attack(oppTarget));
+                if (this.areAllied(oppTarget.faction, this.myFaction)) {
+                  this.eva.speak('Our base is under attack.', 14000);
+                  this.showEvaMessage(`ALERTA: FORÇAS DE ${slot.toUpperCase()} ATACANDO ALIANÇA ALIADA!`);
+                  this.sounds.playEvaChime('alert');
+                } else {
+                  this.showEvaMessage(`CONFLITO TÁTICO: ${slot.toUpperCase()} ENGATILHOU GUERRA CONTRA ${oppTarget.faction.toUpperCase()}`);
+                }
               }
             }
           }

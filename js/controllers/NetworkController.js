@@ -633,6 +633,32 @@ export class MultiplayerManager {
           }
 
           
+          
+          case 'DIPLO_SYNC': {
+            this.engine.setAlliance(data.s1, data.s2, data.isAllied, false);
+            break;
+          }
+
+          case 'DIPLO_PROPOSAL': {
+            if (data.toSlot === this.engine.myFaction) {
+              const accept = confirm(`O Comandante do ${data.fromSlot.toUpperCase()} propõe um Pacto de Aliança Militar! Deseja aceitar?`);
+              if (accept) {
+                this.engine.setAlliance(data.fromSlot, data.toSlot, true, true);
+                this.engine.eva.speak('Alliance formed.');
+                this.engine.showEvaMessage(`ALIANÇA MILITAR FIRMADA COM ${data.fromSlot.toUpperCase()}!`);
+              }
+            }
+            break;
+          }
+
+          case 'DIPLO_BREAK': {
+            this.engine.setAlliance(data.fromSlot, data.toSlot, false, false);
+            this.engine.eva.speak('Alliance terminated! Enemy detected.');
+            this.engine.showEvaMessage(`ALERTA DIPLOMÁTICO: ${data.fromSlot.toUpperCase()} ROMPEU A ALIANÇA!`);
+            this.engine.sounds.playEvaChime('alert');
+            break;
+          }
+
           case 'SYNC_MAP_THEME': {
             this.engine.changeMapTheme(data.theme, false);
             break;

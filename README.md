@@ -59,6 +59,12 @@ Um jogo clássico de Estratégia em Tempo Real (RTS) militar no estilo **Command
 - **Navegação com Botão Esquerdo:** Clique em qualquer ponto do radar tático para centralizar a câmera imediatamente na área.
 - **Movimentação com Botão Direito (Click-to-Move):** Selecione qualquer grupo de tropas ou veículos e clique com o botão direito diretamente no radar para despachá-los ao setor desejado em formação tática, sem precisar mover a câmera.
 
+### 🤝 Sistema de Diplomacia, Alianças & Combate IA vs IA (FFA)
+- **Combate Livre IA vs IA (Guerra entre Bots):** Os robôs de IA possuem consciência estratégica multilateral autônoma. Eles não focam apenas no jogador humano: disputam campos de Tiberium, repelem invasões de bots vizinhos e retaliam imediatamente contra quem atacou suas bases.
+- **Painel Diplomático em Tempo Real (`#diplomacy-modal`):** Botão no HUD superior **`🤝 DIPLOMACIA`** para firmar pactos de paz e alianças de combate com bots ou jogadores humanos a qualquer momento durante a batalha.
+- **Configuração de Times no Lobby:** Organize batalhas cooperativas **2 Humanos vs 2 Bots Brutais**, modos 2v2 (Alfa vs Bravo) ou Free-For-All total (cada um por si).
+- **Visão Compartilhada & Proteção de Fogo Amigo:** Facções aliadas compartilham linha de visão no mapa e radar minimap (com contorno dourado) e nunca sofrem dano de projéteis ou esmagamento aliado.
+
 ### 🌐 Multiplayer até 4 Jogadores & Bots de IA
 - **Topologia Star WebRTC P2P:** Partidas de até 4 jogadores divididos em 4 quadrantes (GDI Azul Noroeste, NOD Vermelho Nordeste, GDI Ouro Sudoeste, NOD Roxo Sudeste).
 - **Sem necessidade de abrir portas no roteador:** Tecnologia STUN (`stun:stun.l.google.com:19302`) com NAT Traversal e UDP Hole Punching automático.

@@ -242,6 +242,22 @@
       padding: 6px 12px;
       background: rgba(18, 25, 38, 0.98);
       border-bottom: 1px solid #233446;
+      cursor: grab;
+      user-select: none;
+    }
+    .comms-header:active {
+      cursor: grabbing;
+    }
+    .drag-handle {
+      cursor: grab;
+      font-size: 13px;
+      opacity: 0.6;
+      margin-right: 2px;
+      letter-spacing: -2px;
+    }
+    .drag-handle:hover {
+      opacity: 1;
+      color: #00e5ff;
     }
     .comms-title {
       display: flex;

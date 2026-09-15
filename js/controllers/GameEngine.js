@@ -45,7 +45,10 @@ export class Engine {
         this.lastGroupPressTime = {};
 
         // Configuração dos 4 Slots da Sala
-        this.slotConfigs = {
+        this.teams = { slot1: "none", slot2: "none", slot3: "none", slot4: "none" };
+    this.diplomacyPacts = new Set();
+    this.aiRetaliationTarget = {};
+    this.slotConfigs = {
           slot1: 'human',
           slot2: 'ai_medium',
           slot3: 'closed',
@@ -522,7 +525,25 @@ export class Engine {
         document.getElementById('btnZoomOut').onclick = () => { this.camera.zoom = Math.max(0.55, this.camera.zoom * 0.8); this.clampCamera(); };
         document.getElementById('btnCenterBase').onclick = () => this.centerOnBase();
 
-                        // Alternador Rápido de Bioma de Mapa no HUD
+                                // Botão Abrir / Fechar Modal de Diplomacia
+        const btnOpenDiplo = document.getElementById('btnOpenDiplomacy');
+        const modalDiplo = document.getElementById('diplomacy-modal');
+        const btnCloseDiplo = document.getElementById('btnCloseDiplomacy');
+
+        if (btnOpenDiplo && modalDiplo) {
+          btnOpenDiplo.onclick = () => {
+            this.renderDiplomacyModal();
+            modalDiplo.style.display = 'flex';
+            this.sounds.playSelect();
+          };
+        }
+        if (btnCloseDiplo && modalDiplo) {
+          btnCloseDiplo.onclick = () => {
+            modalDiplo.style.display = 'none';
+          };
+        }
+
+        // Alternador Rápido de Bioma de Mapa no HUD
         const btnMapSelect = document.getElementById('btnQuickMapSelect');
         if (btnMapSelect) {
           btnMapSelect.onclick = () => {
@@ -542,7 +563,64 @@ export class Engine {
         const btnToggleMic = document.getElementById('btnToggleMic');
 
         if (btnCommsToggle && commsPanel) {
-          btnCommsToggle.onclick = () => {
+          
+        // Sistema de Arrastar e Mover Janela de Videoconferência (Drag & Drop)
+        const commsHeader = commsPanel ? commsPanel.querySelector('.comms-header') : null;
+        if (commsPanel && commsHeader) {
+          let isDraggingComms = false;
+          let dragStartX = 0;
+          let dragStartY = 0;
+          let initialLeft = 0;
+          let initialTop = 0;
+
+          commsHeader.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.comms-actions') || e.target.tagName === 'BUTTON') return;
+
+            isDraggingComms = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            const rect = commsPanel.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            commsPanel.style.bottom = 'auto';
+            commsPanel.style.right = 'auto';
+            commsPanel.style.left = initialLeft + 'px';
+            commsPanel.style.top = initialTop + 'px';
+
+            document.body.style.userSelect = 'none';
+            commsHeader.style.cursor = 'grabbing';
+          });
+
+          window.addEventListener('mousemove', (e) => {
+            if (!isDraggingComms) return;
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+
+            let newLeft = initialLeft + deltaX;
+            let newTop = initialTop + deltaY;
+
+            const maxLeft = Math.max(0, window.innerWidth - commsPanel.offsetWidth);
+            const maxTop = Math.max(0, window.innerHeight - commsPanel.offsetHeight);
+
+            newLeft = Math.max(0, Math.min(maxLeft, newLeft));
+            newTop = Math.max(0, Math.min(maxTop, newTop));
+
+            commsPanel.style.left = newLeft + 'px';
+            commsPanel.style.top = newTop + 'px';
+          });
+
+          window.addEventListener('mouseup', () => {
+            if (isDraggingComms) {
+              isDraggingComms = false;
+              document.body.style.userSelect = '';
+              commsHeader.style.cursor = 'grab';
+            }
+          });
+        }
+
+        btnCommsToggle.onclick = () => {
             commsPanel.classList.toggle('show');
             this.sounds.playSelect();
           };
@@ -1046,7 +1124,6 @@ export class Engine {
       }
 
       updateAI(dt) {
-        // Se formos o Host ou em Modo Solo, rodamos a IA para slots configurados com robôs
         const isHostOrSolo = (!this.multiplayer || !this.multiplayer.connected || this.multiplayer.isHost);
         if (!isHostOrSolo) return;
 
@@ -1054,11 +1131,10 @@ export class Engine {
           const cfg = this.slotConfigs[slot];
           if (!cfg || !cfg.startsWith('ai_')) return;
 
-          // Intervalo de produção baseado na dificuldade
-          let buildInterval = 24;
+          let buildInterval = 22;
           let squadThreshold = 4;
-          if (cfg === 'ai_easy') { buildInterval = 38; squadThreshold = 3; }
-          if (cfg === 'ai_brutal') { buildInterval = 13; squadThreshold = 6; }
+          if (cfg === 'ai_easy') { buildInterval = 36; squadThreshold = 3; }
+          if (cfg === 'ai_brutal') { buildInterval = 12; squadThreshold = 6; }
 
           this.aiTimers[slot] = (this.aiTimers[slot] || 0) + dt;
           if (this.aiTimers[slot] >= buildInterval) {
@@ -1084,23 +1160,54 @@ export class Engine {
               }
             }
 
-            // Unidades de ataque formam pelotão e marcham
-            const squad = this.units.filter(u => u.faction === slot && u.type !== 'harvester');
-            const oppTarget = this.buildings.find(b => b.faction !== slot && b.hp > 0) || this.units.find(u => u.faction !== slot && u.hp > 0);
+            // Unidades de ataque formam pelotão e marcham contra qualquer inimigo não-aliado
+            const squad = this.units.filter(u => u.faction === slot && u.type !== 'harvester' && u.hp > 0);
+            if (squad.length >= squadThreshold) {
+              // Encontra todos os inimigos (outros bots ou o jogador) que NÃO são aliados deste slot
+              const enemyBuildings = this.buildings.filter(b => b.hp > 0 && this.areEnemies(b.faction, slot));
+              const enemyUnits = this.units.filter(u => u.hp > 0 && this.areEnemies(u.faction, slot) && u.type !== 'harvester');
 
-            if (oppTarget && squad.length >= squadThreshold) {
-              squad.forEach(u => u.attack(oppTarget));
-              if (oppTarget.faction === this.myFaction) {
-                this.eva.speak('Our base is under attack.', 14000);
-                this.showEvaMessage('ALERTA: BASE SOB ATAQUE INIMIGO');
-                this.sounds.playEvaChime('alert');
+              let oppTarget = null;
+
+              // 1. Checa se o bot tem alvo de retaliação recente
+              const retaliateSlot = this.aiRetaliationTarget && this.aiRetaliationTarget[slot];
+              if (retaliateSlot && this.areEnemies(retaliateSlot, slot)) {
+                oppTarget = enemyBuildings.find(b => b.faction === retaliateSlot) ||
+                            enemyUnits.find(u => u.faction === retaliateSlot);
+              }
+
+              // 2. Se não houver retaliação, prioriza alvos por proximidade à base do bot com variação tática
+              if (!oppTarget && (enemyBuildings.length > 0 || enemyUnits.length > 0)) {
+                const basePos = fac ? { x: fac.x, y: fac.y } : (squad[0] ? { x: squad[0].x, y: squad[0].y } : { x: 1200, y: 900 });
+                let bestScore = Infinity;
+
+                [...enemyBuildings, ...enemyUnits].forEach(ent => {
+                  const dist = Math.hypot(ent.x - basePos.x, ent.y - basePos.y);
+                  const priorityBonus = ent.type === 'hq' ? -150 : (ent.type === 'factory' ? -80 : 0);
+                  const score = dist + priorityBonus + (Math.random() * 250);
+                  if (score < bestScore) {
+                    bestScore = score;
+                    oppTarget = ent;
+                  }
+                });
+              }
+
+              if (oppTarget) {
+                squad.forEach(u => u.attack(oppTarget));
+                if (this.areAllied(oppTarget.faction, this.myFaction)) {
+                  this.eva.speak('Our base is under attack.', 14000);
+                  this.showEvaMessage(`ALERTA: FORÇAS DE ${slot.toUpperCase()} ATACANDO ALIANÇA ALIADA!`);
+                  this.sounds.playEvaChime('alert');
+                } else {
+                  this.showEvaMessage(`CONFLITO TÁTICO: ${slot.toUpperCase()} ENGATILHOU GUERRA CONTRA ${oppTarget.faction.toUpperCase()}`);
+                }
               }
             }
           }
         });
       }
 
-      updateVictory(dt) {
+  updateVictory(dt) {
         if (this.gameOver) return;
 
         const myUnits = this.units.filter(u => this.isFriendly(u.faction) && u.hp > 0);
